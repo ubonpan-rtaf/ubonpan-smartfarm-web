@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UBONPAN STATION - Smart Farm Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakrapetch:wght@300;400;600;700&display=swap');
+        body { font-family: 'Chakrapetch', sans-serif; background-color: #0b0f19; color: #e2e8f0; }
+        .cyber-card { background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(59, 130, 246, 0.2); backdrop-filter: blur(12px); }
+        .neon-glow-green { box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }
+        .neon-glow-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); }
+    </style>
+</head>
+<body class="p-4 min-h-screen">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <header class="cyber-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 neon-glow-blue">
+            <div>
+                <h1 class="text-3xl font-bold tracking-wider text-blue-400"><i class="fa-solid fa-microchip mr-2"></i>UBONPAN STATION</h1>
+                <p class="text-sm text-gray-400 mt-1">IoT Technology Smart Farm Control Center</p>
+            </div>
+            <div class="flex items-center gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800">
+                <div class="text-right">
+                    <div id="web-time" class="text-xl font-semibold text-yellow-400">00:00:00</div>
+                    <div id="weather-location" class="text-xs text-gray-400">กำลังดึงพิกัด...</div>
+                </div>
+                <div class="h-10 w-px bg-gray-800"></div>
+                <div class="flex items-center gap-2">
+                    <span id="weather-temp" class="text-2xl font-bold text-green-400">--°C</span>
+                    <span id="weather-desc" class="text-xs text-gray-400 block max-w-[100px]">Loading API...</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 space-y-6">
+                
+                <section class="cyber-card p-6 rounded-2xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-200"><i class="fa-solid fa-network-wired mr-2 text-green-400"></i>ข้อมูลเซนเซอร์จากลูกข่าย (Nodes)</h2>
+                        <span class="text-xs bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full border border-green-500/20">Auto-Expand Enabled</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="nodes-container">
+                        <div class="bg-gray-900/40 border border-gray-800 p-4 rounded-xl space-y-3">
+                            <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                                <span class="font-medium text-blue-400">Node #1 (แปลงผักหลัก)</span>
+                                <span class="text-xs text-green-400 flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span> Online</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-center">
+                                <div class="p-2 bg-gray-900/80 rounded-lg">
+                                    <div class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-temperature-three-quarters text-red-400 mr-1"></i>Temp</div>
+                                    <div id="node1-temp" class="text-lg font-bold text-gray-200">-- °C</div>
+                                </div>
+                                <div class="p-2 bg-gray-900/80 rounded-lg">
+                                    <div class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-droplet text-blue-400 mr-1"></i>Humi</div>
+                                    <div id="node1-hum" class="text-lg font-bold text-gray-200">-- %</div>
+                                </div>
+                                <div class="p-2 bg-gray-900/80 rounded-lg">
+                                    <div class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-seedling text-amber-500 mr-1"></i>Soil</div>
+                                    <div id="node1-soil" class="text-lg font-bold text-gray-200">--</div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                </section>
+
+                <section class="cyber-card p-6 rounded-2xl">
+                    <h2 class="text-lg font-semibold text-gray-200 mb-4"><i class="fa-solid fa-chart-line mr-2 text-purple-400"></i>กราฟรวบรวมข้อมูลแนวโน้มสภาพแวดล้อม</h2>
+                    <div class="h-64 bg-gray-900/20 p-2 rounded-xl border border-gray-800/50">
+                        <canvas id="analyticsChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="cyber-card p-6 rounded-2xl border-l-4 border-l-purple-500 neon-glow-green">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-purple-400"><i class="fa-solid fa-brain mr-2"></i>Gemini AI สมองกลวิเคราะห์ระบบ</h2>
+                        <button onclick="runGeminiAI()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs px-4 py-2 rounded-xl font-medium tracking-wide transition flex items-center gap-2 shadow-lg shadow-purple-600/20">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> สั่งให้ AI ประมวลผล
+                        </button>
+                    </div>
+                    <div id="ai-response" class="bg-gray-900/60 border border-gray-800 p-4 rounded-xl text-sm leading-relaxed text-gray-300 min-h-[100px] flex items-center justify-center text-center">
+                        <span class="text-gray-500">กดปุ่มด้านบนเพื่อให้ Gemini ประมวลผลค่าเซนเซอร์ร่วมกับสภาพอากาศปัจจุบันเพื่อรับคำแนะนำ</span>
+                    </div>
+                </section>
+
+            </div>
+
+            <div class="space-y-6">
+                
+                <section class="cyber-card p-6 rounded-2xl">
+                    <h2 class="text-lg font-semibold text-gray-200 mb-4"><i class="fa-solid fa-circle-info mr-2 text-blue-400"></i>สถานะฮาร์ดแวร์แม่ข่าย</h2>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between p-2.5 bg-gray-900/40 rounded-lg border border-gray-800/60">
+                            <span class="text-gray-400">บอร์ดหลัก (Core):</span>
+                            <span class="font-semibold text-blue-400">ESP32-S3 Dual-Core</span>
+                        </div>
+                        <div class="flex justify-between p-2.5 bg-gray-900/40 rounded-lg border border-gray-800/60">
+                            <span class="text-gray-400">ฐานข้อมูล (Cloud):</span>
+                            <span class="font-semibold text-green-400">Firebase RTDB Connected</span>
+                        </div>
+                    </div>
+
+                    <h3 class="text-sm font-semibold text-gray-400 mt-6 mb-3 uppercase tracking-wider">แผงควบคุมอุปกรณ์รีเลย์</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-gray-900/60 rounded-xl border border-gray-800">
+                            <div class="flex items-center gap-3">
+                                <div id="icon-pump" class="p-2.5 bg-gray-800 text-gray-400 rounded-lg"><i class="fa-solid fa-faucet-drip"></i></div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-200">1. ปั๊มน้ำหลัก (Water Pump)</div>
+                                    <div class="text-xs text-gray-500">พินระบบ S3: GPIO 4</div>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="switch-pump" onchange="toggleRelay('pumpState', this.checked)" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-checked:after:bg-white"></div>
+                            </label>
+                        </div>
+
+                        <div class="flex justify-between items-center p-3 bg-gray-900/60 rounded-xl border border-gray-800">
+                            <div class="flex items-center gap-3">
+                                <div id="icon-fan" class="p-2.5 bg-gray-800 text-gray-400 rounded-lg"><i class="fa-solid fa-fan"></i></div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-200">2. พัดลมระบายอากาศ (Fan)</div>
+                                    <div class="text-xs text-gray-500">พินระบบ S3: GPIO 5</div>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="switch-fan" onchange="toggleRelay('fanState', this.checked)" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-checked:after:bg-white"></div>
+                            </label>
+                        </div>
+
+                        <div class="flex justify-between items-center p-3 bg-gray-900/60 rounded-xl border border-gray-800">
+                            <div class="flex items-center gap-3">
+                                <div id="icon-light" class="p-2.5 bg-gray-800 text-gray-400 rounded-lg"><i class="fa-solid fa-lightbulb"></i></div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-200">3. หลอดไฟปลูกพืช (Grow Light)</div>
+                                    <div class="text-xs text-gray-500">พินระบบ S3: GPIO 6</div>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="switch-light" onchange="toggleRelay('lightState', this.checked)" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-checked:after:bg-white"></div>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="cyber-card p-6 rounded-2xl">
+                    <h2 class="text-lg font-semibold text-gray-200 mb-4"><i class="fa-solid fa-sliders mr-2 text-amber-500"></i>การ์ดปรับตั้งค่าเกณฑ์จำกัดอัตโนมัติ</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">ความชื้นดินที่ต้องรดน้ำ (ต่ำกว่าค่านี้):</label>
+                            <input type="number" id="config-soil" class="w-full bg-gray-900 border border-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">อุณหภูมิที่พัดลมต้องทำงาน (สูงกว่าค่านี้):</label>
+                            <input type="number" step="0.1" id="config-temp" class="w-full bg-gray-900 border border-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <button onclick="saveThresholds()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2.5 rounded-xl font-medium tracking-wide transition shadow-lg shadow-blue-600/10">
+                            บันทึกเกณฑ์ตั้งค่าลงบอร์ด S3
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ แก้ไขข้อมูล API KEYS และค่านำเข้าต่างๆ ตรงนี้ครับ
+        const FIREBASE_URL = "https://ubonpan-smartfarm-default-rtdb.firebaseio.com/farm.json";
+        const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
+        const GEMINI_API_KEY = " AIzaSyAOh5oA6FI0tKuZ3pbyKGYyi48vQlH1Gk0";
+
+        // ตัวแปรเก็บประวัติตัวเลขเพื่อทำกราฟย้อนหลังแบบจำลอง
+        let tempHistory = [28, 29, 31, 32, 30, 29];
+        let labelsHistory = ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+        let chart;
+
+        // ฟังก์ชันอัปเดตเวลาบนหน้าจอ
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('web-time').innerText = now.toLocaleTimeString('th-TH');
+        }, 1000);
+
+        // ฟังก์ชันดึงค่าพิกัด Geolocation และส่งต่อไปยัง OpenWeather API
+        function initLocationAndWeather() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    // เรียกดึงข้อมูลสภาพอากาศสากล
+                    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
+                        .then(res => res.json())
+                        .then(data => {
+                            document.getElementById('weather-location').innerText = `${data.name}, ${data.sys.country} (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
+                            document.getElementById('weather-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
+                            document.getElementById('weather-desc').innerText = data.weather[0].description;
+                        }).catch(() => {
+                            document.getElementById('weather-desc').innerText = "กรุณาเช็ค API Key สภาพอากาศ";
+                        });
+                }, () => {
+                    document.getElementById('weather-location').innerText = "ไม่ได้เปิดการแชร์พิกัดสถานที่";
+                });
+            }
+        }
+
+        // ฟังก์ชัน Real-time Polling ดึงค่าจาก Firebase มาอัปเดตหน้าจอเว็บ (เช็คทุกๆ 3 วินาที)
+        function pollFirebaseData() {
+            fetch(FIREBASE_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (data) {
+                        // อัปเดตข้อมูลเซนเซอร์ในโฮสต์โหนด 1
+                        document.getElementById('node1-temp').innerText = data.temp ? `${data.temp.toFixed(1)} °C` : "-- °C";
+                        document.getElementById('node1-hum').innerText = data.hum ? `${data.hum.toFixed(1)} %` : "-- %";
+                        document.getElementById('node1-soil').innerText = data.soil || "--";
+
+                        // อัปเดตสถานะสวิตช์ปุ่มรีเลย์ตามค่าจริงบนบอร์ด
+                        document.getElementById('switch-pump').checked = data.pumpState === 1;
+                        document.getElementById('switch-fan').checked = data.fanState === 1;
+                        document.getElementById('switch-light').checked = data.lightState === 1;
+
+                        // ปรับสีไอคอนตามสถานะเปิด/ปิด
+                        updateIconColor('icon-pump', data.pumpState === 1, 'text-blue-400', 'bg-blue-500/10');
+                        updateIconColor('icon-fan', data.fanState === 1, 'text-green-400', 'bg-green-500/10');
+                        updateIconColor('icon-light', data.lightState === 1, 'text-yellow-400', 'bg-yellow-500/10');
+
+                        // ใส่ค่าตั้งต้นลงในช่อง Input ปรับเกณฑ์ (ถ้ายังไม่มีการพิมพ์ค่าใหม่)
+                        if(!document.activeElement.classList.contains('focus:border-blue-500')) {
+                            document.getElementById('config-soil').placeholder = data.soilLimit || 40;
+                            document.getElementById('config-temp').placeholder = data.tempLimit || 35.0;
+                        }
+                    }
+                });
+        }
+
+        function updateIconColor(id, isActive, textColor, bgColor) {
+            const el = document.getElementById(id);
+            if(isActive) {
+                el.className = `p-2.5 rounded-lg ${textColor} ${bgColor} border border-current/20`;
+            } else {
+                el.className = "p-2.5 bg-gray-800 text-gray-400 rounded-lg";
+            }
+        }
+
+        // ฟังก์ชันสั่งงานเปิด/ปิดรีเลย์แมนนวลจากหน้าเว็บ ส่งค่ากลับไปที่ Firebase (PATCH)
+        function toggleRelay(key, status) {
+            const val = status ? 1 : 0;
+            let bodyData = {};
+            bodyData[key] = val;
+
+            fetch(FIREBASE_URL, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bodyData)
+            }).then(() => console.log(`${key} อัปเดตเป็น ${val}`));
+        }
+
+        // ฟังก์ชันบันทึกเกณฑ์ข้อจำกัด (Threshold) ส่งไปให้บอร์ด S3 นำไปรัน Logic ภายใน
+        function saveThresholds() {
+            const soil = parseInt(document.getElementById('config-soil').value) || 40;
+            const temp = parseFloat(document.getElementById('config-temp').value) || 35.0;
+
+            fetch(FIREBASE_URL, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ soilLimit: soil, tempLimit: temp })
+            }).then(() => alert("บันทึกเกณฑ์ข้อจำกัดเรียบร้อย บอร์ด S3 รับทราบแล้ว"));
+        }
+
+        // ฟังก์ชันดึงขีดความสามารถของ Gemini API นำค่าปัจจุบันไปรันการประมวลผลคำแนะนำ
+        function runGeminiAI() {
+            const resBox = document.getElementById('ai-response');
+            resBox.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2 text-purple-400"></i> Gemini กำลังประมวลผลข้อมูลฟาร์มของคุณ...';
+
+            // ดึงข้อมูลหน้าจอปัจจุบันไปป้อนคำสั่งให้ AI
+            const currentTemp = document.getElementById('node1-temp').innerText;
+            const currentHum = document.getElementById('node1-hum').innerText;
+            const currentSoil = document.getElementById('node1-soil').innerText;
+            const extWeather = document.getElementById('weather-desc').innerText;
+
+            const promptText = `คุณคือผู้เชี่ยวชาญด้านการเกษตรอัจฉริยะ (Smart Farming Analyst) ประจำสถานี UBONPAN STATION วิเคราะห์ข้อมูลเซนเซอร์ในฟาร์มปัจจุบันดังนี้:
+            - อุณหภูมิภายในโรงเรือน: ${currentTemp}
+            - ความชื้นในอากาศ: ${currentHum}
+            - ค่าความชื้นในดินปัจจุบัน: ${currentSoil} (เกณฑ์ต่ำกว่า 40 คือแห้ง)
+            - สภาพอากาศและพยากรณ์ภายนอกพื้นที่จากดาวเทียม: ${extWeather}
+            ช่วยประมวลผลสรุปสั้นๆ เป็นภาษาไทย 3 บรรทัด ว่าสภาพแวดล้อมสมบูรณ์ดีไหม และ AI แนะนำให้รีเลย์ปั๊มน้ำหร
