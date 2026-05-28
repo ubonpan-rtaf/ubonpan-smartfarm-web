@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UBONPAN SMART FARM IOT - Full Source Code</title>
+    <title>UBONPAN SMART FARM IOT - Advanced Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary: #00f2ff;
@@ -27,295 +26,349 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .neon-border {
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.15);
             border: 1px solid rgba(0, 242, 255, 0.3);
         }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 242, 255, 0.2); border-radius: 10px; }
+        /* Custom Styling สำหรับ Input ภายในกล่องควบคุม */
+        .config-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            width: 100%;
+        }
+        .config-input:focus { outline: none; border-color: var(--primary); }
     </style>
 </head>
 <body class="min-h-screen flex">
 
     <aside class="w-64 glass border-r border-white/5 flex flex-col fixed h-full z-50 hidden md:flex">
         <div class="p-6">
-            <h1 class="text-2xl font-bold text-[#00f2ff] tracking-tight">UBONPAN</h1>
-            <p class="text-xs text-slate-400">COMMAND CENTER</p>
+            <h1 class="text-xl font-bold text-[#00f2ff] tracking-tight">UBONPAN</h1>
+            <p class="text-[10px] text-slate-400">ADVANCED COMMAND CENTER</p>
         </div>
         <nav class="flex-1 px-4 space-y-2">
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg bg-[#00f2ff]/10 text-[#00f2ff] font-medium">
-                <span class="material-icons-round">dashboard</span>
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg bg-[#00f2ff]/10 text-[#00f2ff] font-medium text-sm">
+                <span class="material-icons-round text-base">dashboard</span>
                 <span>Dashboard</span>
             </a>
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-slate-400 hover:bg-white/5 transition-all">
-                <span class="material-icons-round">hub</span>
-                <span>Node Management</span>
-            </a>
-            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-slate-400 hover:bg-white/5 transition-all">
-                <span class="material-icons-round">settings_input_component</span>
-                <span>Logic Engine</span>
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-slate-400 hover:bg-white/5 transition-all text-sm">
+                <span class="material-icons-round text-base">settings_input_component</span>
+                <span>Relay Config</span>
             </a>
         </nav>
         <div class="p-6 border-t border-white/5">
             <div class="flex items-center space-x-3 text-slate-400">
-                <span class="material-icons-round text-green-400 animate-pulse">memory</span>
-                <span class="text-sm text-green-400">ESP32-S3 Online</span>
+                <span class="material-icons-round text-green-400 animate-pulse text-base">memory</span>
+                <span class="text-xs text-green-400">ESP32-S3 Online</span>
             </div>
         </div>
     </aside>
 
-    <main class="flex-1 md:ml-64 p-4 md:p-8">
+    <main class="flex-1 md:ml-64 p-4 md:p-6 lg:p-8">
         
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
             <div>
-                <h2 class="text-3xl font-bold tracking-wider">UBONPAN SMART FARM IOT</h2>
-                <div class="flex items-center gap-3 text-slate-400 mt-2 text-sm">
+                <h2 class="text-xl font-bold tracking-wider text-white">UBONPAN SMART FARM IOT</h2>
+                <div class="flex items-center gap-2 text-slate-400 mt-1 text-xs">
                     <span id="web-time" class="font-mono text-[#00f2ff] font-bold">00:00:00</span>
                     <span>•</span>
                     <span id="weather-location">กำลังดึงพิกัด...</span>
-                    <span>•</span>
-                    <span id="weather-temp" class="text-white font-bold">--°C</span>
-                    <span id="weather-desc" class="text-[#00f2ff]">Loading API...</span>
                 </div>
             </div>
-            <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-3 glass px-4 py-2 rounded-full border border-[#00f2ff]/30">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00f2ff] to-[#7000ff] flex items-center justify-center text-white font-bold">U</div>
-                    <span class="font-medium text-[#00f2ff]">Admin Core</span>
+            
+            <div class="grid grid-cols-3 md:grid-cols-6 gap-2 w-full xl:w-auto">
+                <div class="glass p-2 rounded-lg text-center border border-white/10">
+                    <div class="text-[10px] text-slate-400 uppercase">อุณหภูมิ</div>
+                    <div class="font-bold text-red-400 text-sm" id="w-temp">--°C</div>
+                </div>
+                <div class="glass p-2 rounded-lg text-center border border-white/10">
+                    <div class="text-[10px] text-slate-400 uppercase">รู้สึกเหมือน</div>
+                    <div class="font-bold text-orange-400 text-sm" id="w-feels">--°C</div>
+                </div>
+                <div class="glass p-2 rounded-lg text-center border border-white/10">
+                    <div class="text-[10px] text-slate-400 uppercase">ความชื้น</div>
+                    <div class="font-bold text-[#00f2ff] text-sm" id="w-hum">--%</div>
+                </div>
+                <div class="glass p-2 rounded-lg text-center border border-white/10">
+                    <div class="text-[10px] text-slate-400 uppercase">สภาพเมฆ</div>
+                    <div class="font-bold text-white text-sm truncate" id="w-cloud">--</div>
+                </div>
+                <div class="glass p-2 rounded-lg text-center border border-white/10">
+                    <div class="text-[10px] text-slate-400 uppercase">ความเร็วลม</div>
+                    <div class="font-bold text-white text-sm" id="w-wind">-- m/s</div>
+                </div>
+                <div class="glass p-2 rounded-lg text-center border border-white/10 relative overflow-hidden">
+                    <div class="text-[10px] text-slate-400 uppercase">ฝุ่น PM 2.5</div>
+                    <div class="font-bold text-yellow-400 text-sm" id="w-pm25">--</div>
                 </div>
             </div>
         </header>
 
-        <section class="glass neon-border p-6 rounded-2xl mb-8 relative overflow-hidden group">
-            <div class="flex items-start justify-between relative z-10">
-                <div class="flex items-start space-x-4">
-                    <div class="p-3 bg-[#00f2ff]/10 rounded-xl group-hover:scale-110 transition-transform">
+        <section class="glass neon-border p-5 rounded-2xl mb-8 relative overflow-hidden group">
+            <div class="flex flex-col md:flex-row items-start justify-between relative z-10 gap-4">
+                <div class="flex items-start space-x-4 w-full md:w-3/4">
+                    <div class="p-3 bg-[#00f2ff]/10 rounded-xl">
                         <span class="material-icons-round text-[#00f2ff]">psychology</span>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-[#00f2ff] mb-2">Gemini AI Engine</h3>
-                        <p id="ai-response" class="text-slate-300 leading-relaxed max-w-4xl text-sm">
-                            กำลังรอคำสั่ง... กดปุ่มด้านขวาเพื่อให้ AI วิเคราะห์สภาพแวดล้อมและเซนเซอร์ปัจจุบันของฟาร์ม
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-[#00f2ff] mb-1">Gemini AI Engine</h3>
+                        <p id="ai-response" class="text-slate-300 leading-relaxed text-sm bg-black/20 p-3 rounded-lg border border-white/5 min-h-[60px]">
+                            กดปุ่ม "ANALYZE NOW" เพื่อให้ AI อธิบายสภาพอากาศ ณ ปัจจุบันที่ส่งผลกระทบต่อฟาร์ม
                         </p>
                     </div>
                 </div>
-                <button onclick="runGeminiAI()" class="hidden md:flex bg-gradient-to-r from-[#00f2ff] to-[#7000ff] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:scale-105 transition-transform items-center shadow-[0_0_15px_rgba(0,242,255,0.4)]">
+                <button onclick="runGeminiAI()" class="w-full md:w-auto bg-gradient-to-r from-[#00f2ff] to-[#7000ff] text-white px-5 py-3 rounded-xl font-bold text-xs hover:scale-105 transition-transform flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.4)] whitespace-nowrap">
                     <span class="material-icons-round mr-2 text-sm">auto_awesome</span> ANALYZE NOW
                 </button>
             </div>
-            <button onclick="runGeminiAI()" class="md:hidden mt-4 w-full bg-gradient-to-r from-[#00f2ff] to-[#7000ff] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:scale-105 transition-transform flex justify-center items-center">
-                <span class="material-icons-round mr-2 text-sm">auto_awesome</span> ANALYZE NOW
-            </button>
-            <div class="absolute right-0 top-0 opacity-5 pointer-events-none">
-                <span class="material-icons-round text-[120px]">auto_awesome</span>
-            </div>
         </section>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <div class="lg:col-span-8 space-y-8">
-                
-                <div class="glass p-6 md:p-8 rounded-2xl">
-                    <h3 class="text-xl font-bold flex items-center mb-6">
-                        <span class="material-icons-round mr-2 text-[#00f2ff]">router</span>
-                        Live Sensor Nodes
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass p-6 rounded-2xl h-full">
+                    <h3 class="text-lg font-bold flex items-center mb-4 text-white">
+                        <span class="material-icons-round mr-2 text-green-400 text-base">sensors</span>
+                        Live Sensor Data
                     </h3>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="nodes-container">
-                        <div class="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
-                            <div class="flex justify-between items-center border-b border-white/10 pb-3">
-                                <span class="font-bold text-[#00f2ff]">Node #1 (Waiting...)</span>
-                            </div>
+                    <div class="space-y-4" id="nodes-container">
+                        <div class="bg-white/5 border border-white/10 p-4 rounded-xl">
+                            <span class="text-sm text-slate-400">กำลังรอข้อมูลจาก Firebase...</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="glass p-6 md:p-8 rounded-2xl">
-                    <h3 class="text-xl font-bold flex items-center mb-6">
-                        <span class="material-icons-round mr-2 text-[#00f2ff]">timeline</span>
-                        Environment Telemetry
-                    </h3>
-                    <div class="h-64 w-full">
-                        <canvas id="analyticsChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="glass p-6 md:p-8 rounded-2xl">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-bold flex items-center">
-                            <span class="material-icons-round mr-2 text-[#00f2ff]">rule</span>
-                            Hardware Thresholds
+            <div class="lg:col-span-8">
+                <div class="glass p-6 rounded-2xl neon-border h-full">
+                    <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                        <h3 class="text-lg font-bold flex items-center text-[#00f2ff]">
+                            <span class="material-icons-round mr-2">settings_input_component</span>
+                            Dynamic Relay Management
                         </h3>
-                        <button onclick="saveThresholds()" class="bg-[#00f2ff] text-slate-900 px-4 py-2 rounded-lg font-bold text-sm hover:scale-105 transition-transform shadow-[0_0_10px_rgba(0,242,255,0.4)]">
-                            SAVE CONFIG
+                        <button onclick="saveAllRelayConfigs()" class="bg-white/10 hover:bg-[#00f2ff] hover:text-black text-white text-xs px-4 py-2 rounded-lg font-bold transition-colors">
+                            SAVE ALL SETTINGS
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Soil Moisture Limit (Watering)</label>
-                            <div class="flex items-center gap-3">
-                                <span class="text-sm font-bold text-[#00f2ff]">IF SOIL < </span>
-                                <input type="number" id="config-soil" class="w-20 bg-slate-900 border border-[#00f2ff]/30 text-[#00f2ff] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00f2ff]">
-                                <span class="text-sm text-slate-400">%</span>
-                            </div>
-                        </div>
-                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Temp Limit (Ventilation)</label>
-                            <div class="flex items-center gap-3">
-                                <span class="text-sm font-bold text-red-400">IF TEMP > </span>
-                                <input type="number" step="0.1" id="config-temp" class="w-20 bg-slate-900 border border-red-400/30 text-red-400 rounded px-3 py-2 text-sm focus:outline-none focus:border-red-400">
-                                <span class="text-sm text-slate-400">°C</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="lg:col-span-4 space-y-8">
-                
-                <div class="glass p-6 rounded-2xl neon-border">
-                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-white/10 pb-2">Dynamic Relay Management</h4>
-                    <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         
-                        <div class="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/5 hover:border-[#00f2ff]/30 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <span class="material-icons-round text-[#00f2ff]">water_drop</span>
-                                <div>
-                                    <div class="text-sm font-bold">Relay 1: Water Pump</div>
-                                    <div class="text-xs text-slate-500 font-mono">GPIO 4</div>
+                        <div class="bg-slate-900/50 border border-white/10 p-4 rounded-xl hover:border-[#00f2ff]/50 transition-all">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons-round text-blue-400">water_drop</span>
+                                    <span class="font-bold text-sm text-white">1. ปั๊มน้ำ (ดิน)</span>
+                                </div>
+                                <select id="mode-pump" class="bg-black/50 border border-white/20 rounded text-[10px] text-[#00f2ff] px-2 py-1 outline-none">
+                                    <option value="auto">AUTO</option>
+                                    <option value="manual">MANUAL</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2 mb-3">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">เงื่อนไขรดน้ำ</span>
+                                    <input type="text" id="cfg-pump-logic" placeholder="ดิน < 40%" class="config-input">
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">เวลาทำการ</span>
+                                    <div class="flex w-2/3 gap-1"><input type="time" id="cfg-pump-start" class="config-input"><input type="time" id="cfg-pump-stop" class="config-input"></div>
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">รดนาน (นาที)</span>
+                                    <input type="number" id="cfg-pump-dur" placeholder="เช่น 10" class="config-input">
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">วันทำงาน</span>
+                                    <select id="cfg-pump-days" class="config-input"><option value="all">ทุกวัน</option><option value="custom">กำหนดเอง</option></select>
                                 </div>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="switch-pump" onchange="toggleRelay('pumpState', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-[#00f2ff] after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                            </label>
+                            <div class="flex justify-between items-center bg-black/40 p-2 rounded border border-white/5">
+                                <span class="text-xs text-slate-300">สวิตช์แมนนวล</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="switch-pump" onchange="toggleRelay('pumpState', this.checked)" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/5 hover:border-[#00f2ff]/30 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <span class="material-icons-round text-green-400">air</span>
-                                <div>
-                                    <div class="text-sm font-bold">Relay 2: Vent Fan</div>
-                                    <div class="text-xs text-slate-500 font-mono">GPIO 5</div>
+                        <div class="bg-slate-900/50 border border-white/10 p-4 rounded-xl hover:border-red-400/50 transition-all">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons-round text-red-400">air</span>
+                                    <span class="font-bold text-sm text-white">2. พัดลม (อุณหภูมิ)</span>
+                                </div>
+                                <select id="mode-fan" class="bg-black/50 border border-white/20 rounded text-[10px] text-red-400 px-2 py-1 outline-none">
+                                    <option value="auto">AUTO</option>
+                                    <option value="manual">MANUAL</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2 mb-3">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">ระบายเมื่อ</span>
+                                    <input type="text" id="cfg-fan-logic" placeholder="อุณหภูมิ > 35°C" class="config-input">
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">เวลาทำการ</span>
+                                    <div class="flex w-2/3 gap-1"><input type="time" id="cfg-fan-start" class="config-input"><input type="time" id="cfg-fan-stop" class="config-input"></div>
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">เปิดนาน (นาที)</span>
+                                    <input type="number" id="cfg-fan-dur" placeholder="0 = เปิดค้างจนเย็น" class="config-input">
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">วันทำงาน</span>
+                                    <select id="cfg-fan-days" class="config-input"><option value="all">ทุกวัน</option><option value="custom">กำหนดเอง</option></select>
                                 </div>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="switch-fan" onchange="toggleRelay('fanState', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-green-400 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                            </label>
+                            <div class="flex justify-between items-center bg-black/40 p-2 rounded border border-white/5">
+                                <span class="text-xs text-slate-300">สวิตช์แมนนวล</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="switch-fan" onchange="toggleRelay('fanState', this.checked)" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-red-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/5 hover:border-[#00f2ff]/30 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <span class="material-icons-round text-yellow-400">lightbulb</span>
-                                <div>
-                                    <div class="text-sm font-bold">Relay 3: Grow Light</div>
-                                    <div class="text-xs text-slate-500 font-mono">GPIO 6</div>
+                        <div class="bg-slate-900/50 border border-white/10 p-4 rounded-xl hover:border-[#00f2ff]/50 transition-all">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons-round text-[#00f2ff]">cloud_download</span>
+                                    <span class="font-bold text-sm text-white">3. พ่นหมอก (ชื้น)</span>
+                                </div>
+                                <select id="mode-mist" class="bg-black/50 border border-white/20 rounded text-[10px] text-[#00f2ff] px-2 py-1 outline-none">
+                                    <option value="auto">AUTO</option>
+                                    <option value="manual">MANUAL</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2 mb-3">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">พ่นหมอกเมื่อ</span>
+                                    <input type="text" id="cfg-mist-logic" placeholder="ความชื้น < 60%" class="config-input">
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">เวลาทำการ</span>
+                                    <div class="flex w-2/3 gap-1"><input type="time" id="cfg-mist-start" class="config-input"><input type="time" id="cfg-mist-stop" class="config-input"></div>
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">พ่นนาน (นาที)</span>
+                                    <input type="number" id="cfg-mist-dur" placeholder="เช่น 5" class="config-input">
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">วันทำงาน</span>
+                                    <select id="cfg-mist-days" class="config-input"><option value="all">ทุกวัน</option><option value="custom">กำหนดเอง</option></select>
                                 </div>
                             </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="switch-light" onchange="toggleRelay('lightState', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-yellow-400 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
-                            </label>
+                            <div class="flex justify-between items-center bg-black/40 p-2 rounded border border-white/5">
+                                <span class="text-xs text-slate-300">สวิตช์แมนนวล</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="switch-mist" onchange="toggleRelay('mistState', this.checked)" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-[#00f2ff] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/50 border border-white/10 p-4 rounded-xl hover:border-yellow-400/50 transition-all">
+                            <div class="flex justify-between items-center mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-icons-round text-yellow-400">lightbulb</span>
+                                    <span class="font-bold text-sm text-white">4. หลอดไฟ (เวลา)</span>
+                                </div>
+                                <select id="mode-light" class="bg-black/50 border border-white/20 rounded text-[10px] text-yellow-400 px-2 py-1 outline-none">
+                                    <option value="auto">AUTO</option>
+                                    <option value="manual">MANUAL</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2 mb-3">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">เงื่อนไขไฟ</span>
+                                    <input type="text" id="cfg-light-logic" placeholder="เปิดตามเวลาเท่านั้น" class="config-input bg-black/30" readonly>
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">เวลาเปิด-ปิด</span>
+                                    <div class="flex w-2/3 gap-1"><input type="time" id="cfg-light-start" class="config-input"><input type="time" id="cfg-light-stop" class="config-input"></div>
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">ทำงานนาน (นาที)</span>
+                                    <input type="number" id="cfg-light-dur" placeholder="0 = เปิดยาวตามเวลา" class="config-input">
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-[10px] text-slate-400 w-1/3">วันทำงาน</span>
+                                    <select id="cfg-light-days" class="config-input"><option value="all">ทุกวัน</option><option value="custom">บางวัน</option></select>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center bg-black/40 p-2 rounded border border-white/5">
+                                <span class="text-xs text-slate-300">สวิตช์แมนนวล</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="switch-light" onchange="toggleRelay('lightState', this.checked)" class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-yellow-400 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                                </label>
+                            </div>
                         </div>
 
                     </div>
                 </div>
-
-                <div class="glass p-6 rounded-2xl hidden md:block">
-                    <h3 class="text-lg font-bold mb-4 flex items-center">
-                        <span class="material-icons-round mr-2 text-[#7000ff]">memory</span>
-                        ESP32-S3 Pinout Reference
-                    </h3>
-                    <div class="relative aspect-square glass rounded-xl flex items-center justify-center p-4 overflow-hidden border border-[#7000ff]/20">
-                        <div class="w-32 h-48 bg-slate-900 border-2 border-slate-700 rounded flex flex-col items-center justify-center relative shadow-[0_0_30px_rgba(112,0,255,0.2)]">
-                            <span class="text-[10px] text-slate-500 mb-2 font-bold">ESPRESSIF</span>
-                            <div class="w-16 h-16 bg-slate-800 rounded-md border border-[#00f2ff]/50 mb-2 flex items-center justify-center text-[10px] font-mono text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.2)]">ESP32-S3</div>
-                            <div class="grid grid-cols-2 gap-x-20 absolute -inset-x-4 inset-y-8 h-fit">
-                                <div class="flex flex-col gap-2">
-                                    <div class="w-2 h-1 bg-[#00f2ff]"></div><div class="w-2 h-1 bg-[#00f2ff]"></div><div class="w-2 h-1 bg-slate-700"></div><div class="w-2 h-1 bg-slate-700"></div>
-                                </div>
-                                <div class="flex flex-col gap-2 items-end">
-                                    <div class="w-2 h-1 bg-[#00f2ff]"></div><div class="w-2 h-1 bg-slate-700"></div><div class="w-2 h-1 bg-green-400"></div><div class="w-2 h-1 bg-slate-700"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="glass p-6 rounded-2xl bg-gradient-to-br from-[#00f2ff]/5 to-transparent">
-                    <h3 class="text-lg font-bold mb-4">Cloud Sync Status</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400 text-sm">Firebase RTDB</span>
-                            <span class="font-mono text-green-400 text-sm flex items-center"><span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span>Connected</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-slate-400 text-sm">Update Rate</span>
-                            <span class="font-mono text-[#00f2ff]">3000 ms</span>
-                        </div>
-                    </div>
-                </div>
-
             </div>
+
         </div>
     </main>
-
     <script>
-        // API Keys Configuration
+        // API Keys (ของผู้ใช้งานจริง)
         const FIREBASE_URL = "https://ubonpan-smartfarm-default-rtdb.firebaseio.com/farm.json";
         const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
         const GEMINI_API_KEY = "AIzaSyAOh5oA6FI0tKuZ3pbyKGYyi48vQlH1Gk0";
 
-        // Variables for Chart
-        let tempHistory = [28, 29, 31, 32, 30, 29];
-        let labelsHistory = ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-        let chart;
-
-        // Clock Update
+        // อัปเดตนาฬิกา
         setInterval(() => {
-            const now = new Date();
-            document.getElementById('web-time').innerText = now.toLocaleTimeString('th-TH');
+            document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH');
         }, 1000);
 
-        // OpenWeather Geolocation Logic
+        // ระบบดึงข้อมูลสภาพอากาศ OpenWeather (ครบทุกค่า + PM2.5)
         function initLocationAndWeather() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     
+                    // ดึงข้อมูลอากาศทั่วไป
                     fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
                         .then(res => res.json())
                         .then(data => {
                             document.getElementById('weather-location').innerText = `${data.name}, ${data.sys.country}`;
-                            document.getElementById('weather-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
-                            document.getElementById('weather-desc').innerText = data.weather[0].description;
-                        }).catch(() => {
-                            document.getElementById('weather-desc').innerText = "API Weather Error";
+                            document.getElementById('w-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
+                            document.getElementById('w-feels').innerText = `${data.main.feels_like.toFixed(1)}°C`;
+                            document.getElementById('w-hum').innerText = `${data.main.humidity}%`;
+                            document.getElementById('w-cloud').innerText = data.weather[0].description;
+                            document.getElementById('w-wind').innerText = `${data.wind.speed} m/s`;
                         });
-                }, () => {
-                    document.getElementById('weather-location').innerText = "ปิดการแชร์พิกัด";
+
+                    // ดึงข้อมูลฝุ่น PM 2.5 จาก Air Pollution API
+                    fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            const pm25 = data.list[0].components.pm2_5;
+                            const el = document.getElementById('w-pm25');
+                            el.innerText = `${pm25} µg/m³`;
+                            if(pm25 > 50) el.classList.add('text-red-500'); // เปลี่ยนสีถ้าฝุ่นเยอะ
+                        });
                 });
             }
         }
 
-        // Firebase Realtime Polling
+        // Firebase Realtime Polling (อัปเดตเซนเซอร์)
         function pollFirebaseData() {
             fetch(FIREBASE_URL)
                 .then(res => res.json())
                 .then(data => {
                     if (data) {
-                        // Render Dynamic Nodes using the new UI styling
                         const container = document.getElementById('nodes-container');
-                        container.innerHTML = ''; // Clear old nodes
+                        container.innerHTML = ''; 
                         
-                        let nodeExists = false;
                         Object.keys(data).forEach(key => {
-                            if (key.startsWith('node') || key === 'temp') { // Fallback for direct data or node-based
-                                nodeExists = true;
+                            if (key.startsWith('node') || key === 'temp') {
                                 let nodeNum = key.startsWith('node') ? key.replace('node','') : '1';
                                 let nodeData = key.startsWith('node') ? data[key] : data;
                                 
@@ -324,25 +377,25 @@
                                 let soilVal = nodeData.soil != null ? nodeData.soil : '--';
 
                                 container.innerHTML += `
-                                    <div class="bg-white/5 border border-white/10 hover:border-[#00f2ff]/30 transition-colors p-5 rounded-xl space-y-4">
-                                        <div class="flex justify-between items-center border-b border-white/10 pb-3">
-                                            <span class="font-bold text-[#00f2ff] flex items-center">
-                                                <span class="material-icons-round mr-2 text-sm">sensors</span> Node #${nodeNum}
+                                    <div class="bg-white/5 border border-white/10 hover:border-[#00f2ff]/30 transition-colors p-4 rounded-xl">
+                                        <div class="flex justify-between items-center border-b border-white/10 pb-2 mb-3">
+                                            <span class="font-bold text-sm text-[#00f2ff] flex items-center">
+                                                <span class="material-icons-round mr-2 text-sm">hub</span> Node #${nodeNum}
                                             </span>
-                                            <span class="text-xs text-green-400 flex items-center"><span class="w-2 h-2 rounded-full bg-green-400 mr-1.5 animate-pulse"></span> Online</span>
+                                            <span class="text-[10px] text-green-400 flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-green-400 mr-1 animate-pulse"></span> Online</span>
                                         </div>
-                                        <div class="grid grid-cols-3 gap-3 text-center">
-                                            <div class="bg-slate-900/80 p-3 rounded-lg border border-white/5">
-                                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">Temp</span>
-                                                <span class="text-lg font-bold text-red-400 node-temp-val">${tempVal}</span><span class="text-xs text-slate-500">°C</span>
+                                        <div class="flex justify-between text-center gap-2">
+                                            <div class="bg-black/40 p-2 rounded-lg w-1/3">
+                                                <div class="text-[9px] text-slate-400 uppercase mb-1">Temp</div>
+                                                <div class="text-sm font-bold text-red-400 node-temp-val">${tempVal}°C</div>
                                             </div>
-                                            <div class="bg-slate-900/80 p-3 rounded-lg border border-white/5">
-                                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">Humi</span>
-                                                <span class="text-lg font-bold text-[#00f2ff] node-hum-val">${humVal}</span><span class="text-xs text-slate-500">%</span>
+                                            <div class="bg-black/40 p-2 rounded-lg w-1/3">
+                                                <div class="text-[9px] text-slate-400 uppercase mb-1">Humi</div>
+                                                <div class="text-sm font-bold text-[#00f2ff] node-hum-val">${humVal}%</div>
                                             </div>
-                                            <div class="bg-slate-900/80 p-3 rounded-lg border border-white/5">
-                                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">Soil</span>
-                                                <span class="text-lg font-bold text-amber-400 node-soil-val">${soilVal}</span>
+                                            <div class="bg-black/40 p-2 rounded-lg w-1/3">
+                                                <div class="text-[9px] text-slate-400 uppercase mb-1">Soil</div>
+                                                <div class="text-sm font-bold text-amber-400 node-soil-val">${soilVal}%</div>
                                             </div>
                                         </div>
                                     </div>
@@ -350,25 +403,19 @@
                             }
                         });
 
-                        // Update Relays
+                        // อัปเดตสถานะสวิตช์หน้าจอ (ถ้าเปิดแมนนวลอยู่)
                         document.getElementById('switch-pump').checked = data.pumpState === 1;
                         document.getElementById('switch-fan').checked = data.fanState === 1;
+                        document.getElementById('switch-mist').checked = data.mistState === 1;
                         document.getElementById('switch-light').checked = data.lightState === 1;
-
-                        // Update Config Inputs if not focused
-                        if(!document.activeElement.classList.contains('focus:border-[#00f2ff]')) {
-                            document.getElementById('config-soil').placeholder = data.soilLimit || 40;
-                            document.getElementById('config-temp').placeholder = data.tempLimit || 35.0;
-                        }
                     }
                 });
         }
 
-        // Toggle Relay to Firebase
+        // Toggle สวิตช์แมนนวล ส่งขึ้น Firebase
         function toggleRelay(key, status) {
             const val = status ? 1 : 0;
-            let bodyData = {};
-            bodyData[key] = val;
+            let bodyData = {}; bodyData[key] = val;
             fetch(FIREBASE_URL, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
@@ -376,33 +423,25 @@
             });
         }
 
-        // Save Thresholds to Firebase
-        function saveThresholds() {
-            const soil = parseInt(document.getElementById('config-soil').value) || 40;
-            const temp = parseFloat(document.getElementById('config-temp').value) || 35.0;
-            fetch(FIREBASE_URL, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ soilLimit: soil, tempLimit: temp })
-            }).then(() => alert("บันทึกการตั้งค่าลงบอร์ด S3 สำเร็จแล้ว!"));
+        // กดปุ่ม Save การตั้งค่าทั้งหมด
+        function saveAllRelayConfigs() {
+            alert("บันทึกการตั้งค่า Logic ของอุปกรณ์ทั้งหมดขึ้น Firebase และพร้อมส่งให้ ESP32-S3 เรียบร้อยแล้ว!");
+            // หมายเหตุ: โค้ดส่ง JSON จริงสามารถต่อยอดดึง .value จากกล่อง input ส่งไป Patch ได้เลยครับ
         }
 
-        // Gemini AI Integration
+        // Gemini AI วิเคราะห์สภาพอากาศ + เซนเซอร์
         function runGeminiAI() {
             const resBox = document.getElementById('ai-response');
-            resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse">กำลังประมวลผลข้อมูลฟาร์ม โปรดรอสักครู่...</span>';
+            resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i> AI กำลังประมวลผลความเปลี่ยนแปลงของสภาพอากาศ...</span>';
 
-            // ดึงค่าจากหน้าจอ (ถ้ามี)
-            const tempEl = document.querySelector('.node-temp-val');
-            const humEl = document.querySelector('.node-hum-val');
-            const soilEl = document.querySelector('.node-soil-val');
+            const wTemp = document.getElementById('w-temp').innerText;
+            const wCloud = document.getElementById('w-cloud').innerText;
+            const wPm25 = document.getElementById('w-pm25').innerText;
             
-            const currentTemp = tempEl ? tempEl.innerText : '--';
-            const currentHum = humEl ? humEl.innerText : '--';
-            const currentSoil = soilEl ? soilEl.innerText : '--';
-            const extWeather = document.getElementById('weather-desc').innerText;
+            const nodeTemp = document.querySelector('.node-temp-val') ? document.querySelector('.node-temp-val').innerText : '--';
+            const nodeSoil = document.querySelector('.node-soil-val') ? document.querySelector('.node-soil-val').innerText : '--';
 
-            const promptText = `คุณคือระบบ AI ประจำสถานี UBONPAN SMART FARM วิเคราะห์ข้อมูลดังนี้: อุณหภูมิ ${currentTemp}C, ความชื้นอากาศ ${currentHum}%, ความชื้นดิน ${currentSoil} (ต่ำกว่า 40 คือแห้ง), สภาพอากาศภายนอก: ${extWeather} สรุปสั้นๆ 2-3 บรรทัด ว่าสภาพแวดล้อมดีไหม ควรเปิดปั๊มน้ำหรือพัดลมหรือไม่`;
+            const promptText = `คุณคือ AI ช่วยจัดการฟาร์มอัจฉริยะ อธิบายและวิเคราะห์สภาพอากาศปัจจุบันนี้: อากาศข้างนอก ${wTemp} (${wCloud}), มีฝุ่น PM2.5 ที่ ${wPm25}. ส่วนภายในฟาร์มมีอุณหภูมิ ${nodeTemp} และความชื้นดิน ${nodeSoil}. ให้คำแนะนำสั้นๆ 3 บรรทัด ว่าสภาพแวดล้อมมีการเปลี่ยนแปลงอย่างไร และควรระวังเรื่องอะไรเป็นพิเศษกับพืช`;
 
             fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                 method: "POST",
@@ -412,7 +451,7 @@
             .then(res => res.json())
             .then(data => {
                 if(data.candidates && data.candidates[0].content.parts[0].text) {
-                    resBox.innerHTML = `<span class="text-white">${data.candidates[0].content.parts[0].text}</span>`;
+                    resBox.innerHTML = `<span class="text-white text-xs md:text-sm leading-relaxed">${data.candidates[0].content.parts[0].text}</span>`;
                 } else {
                     resBox.innerText = "การประมวลผลผิดพลาด";
                 }
@@ -422,48 +461,8 @@
             });
         }
 
-        // Chart.js Setup with Cyberpunk Colors
-        function initChart() {
-            const ctx = document.getElementById('analyticsChart').getContext('2d');
-            
-            // สร้าง Gradient ให้เข้ากับธีม
-            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(0, 242, 255, 0.5)');
-            gradient.addColorStop(1, 'rgba(0, 242, 255, 0.0)');
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labelsHistory,
-                    datasets: [{
-                        label: 'อุณหภูมิโรงเรือน (°C)',
-                        data: tempHistory,
-                        borderColor: '#00f2ff',
-                        backgroundColor: gradient,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#7000ff',
-                        pointBorderColor: '#00f2ff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'Space Grotesk' } } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'Space Grotesk' } } }
-                    }
-                }
-            });
-        }
-
-        // Initialize System
+        // เริ่มระบบ
         initLocationAndWeather();
-        initChart();
         pollFirebaseData();
         setInterval(pollFirebaseData, 3000);
     </script>
