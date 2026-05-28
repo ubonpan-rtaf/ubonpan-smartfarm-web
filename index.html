@@ -3,241 +3,360 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UBONPAN STATION - Smart Farm Console</title>
+    <title>UBONPAN SMART FARM IOT - Full Source Code</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Chakrapetch:wght@300;400;600;700&display=swap');
-        body { font-family: 'Chakrapetch', sans-serif; background-color: #0b0f19; color: #e2e8f0; }
-        .cyber-card { background: rgba(17, 24, 39, 0.7); border: 1px solid rgba(59, 130, 246, 0.2); backdrop-filter: blur(12px); }
-        .neon-glow-green { box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }
-        .neon-glow-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); }
+        :root {
+            --primary: #00f2ff;
+            --surface: #0b1326;
+            --surface-low: #131b2e;
+            --accent: #7000ff;
+        }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--surface);
+            color: white;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: rgba(19, 27, 46, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .neon-border {
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 242, 255, 0.2); border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 min-h-screen">
+<body class="min-h-screen flex">
 
-    <div class="max-w-7xl mx-auto space-y-6">
-        
-        <header class="cyber-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-4 neon-glow-blue">
-            <div>
-                <h1 class="text-3xl font-bold tracking-wider text-blue-400"><i class="fa-solid fa-microchip mr-2"></i>UBONPAN STATION</h1>
-                <p class="text-sm text-gray-400 mt-1">IoT Technology Smart Farm Control Center</p>
+    <aside class="w-64 glass border-r border-white/5 flex flex-col fixed h-full z-50 hidden md:flex">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold text-[#00f2ff] tracking-tight">UBONPAN</h1>
+            <p class="text-xs text-slate-400">COMMAND CENTER</p>
+        </div>
+        <nav class="flex-1 px-4 space-y-2">
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg bg-[#00f2ff]/10 text-[#00f2ff] font-medium">
+                <span class="material-icons-round">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-slate-400 hover:bg-white/5 transition-all">
+                <span class="material-icons-round">hub</span>
+                <span>Node Management</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 p-3 rounded-lg text-slate-400 hover:bg-white/5 transition-all">
+                <span class="material-icons-round">settings_input_component</span>
+                <span>Logic Engine</span>
+            </a>
+        </nav>
+        <div class="p-6 border-t border-white/5">
+            <div class="flex items-center space-x-3 text-slate-400">
+                <span class="material-icons-round text-green-400 animate-pulse">memory</span>
+                <span class="text-sm text-green-400">ESP32-S3 Online</span>
             </div>
-            <div class="flex items-center gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800">
-                <div class="text-right">
-                    <div id="web-time" class="text-xl font-semibold text-yellow-400">00:00:00</div>
-                    <div id="weather-location" class="text-xs text-gray-400">กำลังดึงพิกัด...</div>
+        </div>
+    </aside>
+
+    <main class="flex-1 md:ml-64 p-4 md:p-8">
+        
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h2 class="text-3xl font-bold tracking-wider">UBONPAN SMART FARM IOT</h2>
+                <div class="flex items-center gap-3 text-slate-400 mt-2 text-sm">
+                    <span id="web-time" class="font-mono text-[#00f2ff] font-bold">00:00:00</span>
+                    <span>•</span>
+                    <span id="weather-location">กำลังดึงพิกัด...</span>
+                    <span>•</span>
+                    <span id="weather-temp" class="text-white font-bold">--°C</span>
+                    <span id="weather-desc" class="text-[#00f2ff]">Loading API...</span>
                 </div>
-                <div class="h-10 w-px bg-gray-800"></div>
-                <div class="flex items-center gap-2">
-                    <span id="weather-temp" class="text-2xl font-bold text-green-400">--°C</span>
-                    <span id="weather-desc" class="text-xs text-gray-400 block max-w-[100px]">Loading API...</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-3 glass px-4 py-2 rounded-full border border-[#00f2ff]/30">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#00f2ff] to-[#7000ff] flex items-center justify-center text-white font-bold">U</div>
+                    <span class="font-medium text-[#00f2ff]">Admin Core</span>
                 </div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <div class="lg:col-span-2 space-y-6">
-                
-                <section class="cyber-card p-6 rounded-2xl">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-gray-200"><i class="fa-solid fa-network-wired mr-2 text-green-400"></i>ข้อมูลเซนเซอร์จากลูกข่าย (Nodes)</h2>
-                        <span class="text-xs bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full border border-green-500/20">Auto-Expand Enabled</span>
+        <section class="glass neon-border p-6 rounded-2xl mb-8 relative overflow-hidden group">
+            <div class="flex items-start justify-between relative z-10">
+                <div class="flex items-start space-x-4">
+                    <div class="p-3 bg-[#00f2ff]/10 rounded-xl group-hover:scale-110 transition-transform">
+                        <span class="material-icons-round text-[#00f2ff]">psychology</span>
                     </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-[#00f2ff] mb-2">Gemini AI Engine</h3>
+                        <p id="ai-response" class="text-slate-300 leading-relaxed max-w-4xl text-sm">
+                            กำลังรอคำสั่ง... กดปุ่มด้านขวาเพื่อให้ AI วิเคราะห์สภาพแวดล้อมและเซนเซอร์ปัจจุบันของฟาร์ม
+                        </p>
+                    </div>
+                </div>
+                <button onclick="runGeminiAI()" class="hidden md:flex bg-gradient-to-r from-[#00f2ff] to-[#7000ff] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:scale-105 transition-transform items-center shadow-[0_0_15px_rgba(0,242,255,0.4)]">
+                    <span class="material-icons-round mr-2 text-sm">auto_awesome</span> ANALYZE NOW
+                </button>
+            </div>
+            <button onclick="runGeminiAI()" class="md:hidden mt-4 w-full bg-gradient-to-r from-[#00f2ff] to-[#7000ff] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:scale-105 transition-transform flex justify-center items-center">
+                <span class="material-icons-round mr-2 text-sm">auto_awesome</span> ANALYZE NOW
+            </button>
+            <div class="absolute right-0 top-0 opacity-5 pointer-events-none">
+                <span class="material-icons-round text-[120px]">auto_awesome</span>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-8 space-y-8">
+                
+                <div class="glass p-6 md:p-8 rounded-2xl">
+                    <h3 class="text-xl font-bold flex items-center mb-6">
+                        <span class="material-icons-round mr-2 text-[#00f2ff]">router</span>
+                        Live Sensor Nodes
+                    </h3>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="nodes-container">
-                        <div class="bg-gray-900/40 border border-gray-800 p-4 rounded-xl space-y-3">
-                            <div class="flex justify-between items-center border-b border-gray-800 pb-2">
-                                <span class="font-medium text-blue-400">Node #1 (แปลงผักหลัก)</span>
-                                <span class="text-xs text-green-400 flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span> Online</span>
-                            </div>
-                            <div class="grid grid-cols-3 gap-2 text-center">
-                                <div class="p-2 bg-gray-900/80 rounded-lg">
-                                    <div class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-temperature-three-quarters text-red-400 mr-1"></i>Temp</div>
-                                    <div id="node1-temp" class="text-lg font-bold text-gray-200">-- °C</div>
-                                </div>
-                                <div class="p-2 bg-gray-900/80 rounded-lg">
-                                    <div class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-droplet text-blue-400 mr-1"></i>Humi</div>
-                                    <div id="node1-hum" class="text-lg font-bold text-gray-200">-- %</div>
-                                </div>
-                                <div class="p-2 bg-gray-900/80 rounded-lg">
-                                    <div class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-seedling text-amber-500 mr-1"></i>Soil</div>
-                                    <div id="node1-soil" class="text-lg font-bold text-gray-200">--</div>
-                                </div>
+                        <div class="bg-white/5 border border-white/10 p-5 rounded-xl space-y-4">
+                            <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                                <span class="font-bold text-[#00f2ff]">Node #1 (Waiting...)</span>
                             </div>
                         </div>
-                        </div>
-                </section>
+                    </div>
+                </div>
 
-                <section class="cyber-card p-6 rounded-2xl">
-                    <h2 class="text-lg font-semibold text-gray-200 mb-4"><i class="fa-solid fa-chart-line mr-2 text-purple-400"></i>กราฟรวบรวมข้อมูลแนวโน้มสภาพแวดล้อม</h2>
-                    <div class="h-64 bg-gray-900/20 p-2 rounded-xl border border-gray-800/50">
+                <div class="glass p-6 md:p-8 rounded-2xl">
+                    <h3 class="text-xl font-bold flex items-center mb-6">
+                        <span class="material-icons-round mr-2 text-[#00f2ff]">timeline</span>
+                        Environment Telemetry
+                    </h3>
+                    <div class="h-64 w-full">
                         <canvas id="analyticsChart"></canvas>
                     </div>
-                </section>
+                </div>
 
-                <section class="cyber-card p-6 rounded-2xl border-l-4 border-l-purple-500 neon-glow-green">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-purple-400"><i class="fa-solid fa-brain mr-2"></i>Gemini AI สมองกลวิเคราะห์ระบบ</h2>
-                        <button onclick="runGeminiAI()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs px-4 py-2 rounded-xl font-medium tracking-wide transition flex items-center gap-2 shadow-lg shadow-purple-600/20">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> สั่งให้ AI ประมวลผล
+                <div class="glass p-6 md:p-8 rounded-2xl">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold flex items-center">
+                            <span class="material-icons-round mr-2 text-[#00f2ff]">rule</span>
+                            Hardware Thresholds
+                        </h3>
+                        <button onclick="saveThresholds()" class="bg-[#00f2ff] text-slate-900 px-4 py-2 rounded-lg font-bold text-sm hover:scale-105 transition-transform shadow-[0_0_10px_rgba(0,242,255,0.4)]">
+                            SAVE CONFIG
                         </button>
                     </div>
-                    <div id="ai-response" class="bg-gray-900/60 border border-gray-800 p-4 rounded-xl text-sm leading-relaxed text-gray-300 min-h-[100px] flex items-center justify-center text-center">
-                        <span class="text-gray-500">กดปุ่มด้านบนเพื่อให้ Gemini ประมวลผลค่าเซนเซอร์ร่วมกับสภาพอากาศปัจจุบันเพื่อรับคำแนะนำ</span>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Soil Moisture Limit (Watering)</label>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-[#00f2ff]">IF SOIL < </span>
+                                <input type="number" id="config-soil" class="w-20 bg-slate-900 border border-[#00f2ff]/30 text-[#00f2ff] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#00f2ff]">
+                                <span class="text-sm text-slate-400">%</span>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 p-4 rounded-xl border border-white/5">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Temp Limit (Ventilation)</label>
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-bold text-red-400">IF TEMP > </span>
+                                <input type="number" step="0.1" id="config-temp" class="w-20 bg-slate-900 border border-red-400/30 text-red-400 rounded px-3 py-2 text-sm focus:outline-none focus:border-red-400">
+                                <span class="text-sm text-slate-400">°C</span>
+                            </div>
+                        </div>
                     </div>
-                </section>
+                </div>
 
             </div>
 
-            <div class="space-y-6">
+            <div class="lg:col-span-4 space-y-8">
                 
-                <section class="cyber-card p-6 rounded-2xl">
-                    <h2 class="text-lg font-semibold text-gray-200 mb-4"><i class="fa-solid fa-circle-info mr-2 text-blue-400"></i>สถานะฮาร์ดแวร์แม่ข่าย</h2>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex justify-between p-2.5 bg-gray-900/40 rounded-lg border border-gray-800/60">
-                            <span class="text-gray-400">บอร์ดหลัก (Core):</span>
-                            <span class="font-semibold text-blue-400">ESP32-S3 Dual-Core</span>
-                        </div>
-                        <div class="flex justify-between p-2.5 bg-gray-900/40 rounded-lg border border-gray-800/60">
-                            <span class="text-gray-400">ฐานข้อมูล (Cloud):</span>
-                            <span class="font-semibold text-green-400">Firebase RTDB Connected</span>
-                        </div>
-                    </div>
-
-                    <h3 class="text-sm font-semibold text-gray-400 mt-6 mb-3 uppercase tracking-wider">แผงควบคุมอุปกรณ์รีเลย์</h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center p-3 bg-gray-900/60 rounded-xl border border-gray-800">
+                <div class="glass p-6 rounded-2xl neon-border">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-white/10 pb-2">Dynamic Relay Management</h4>
+                    <div class="space-y-4">
+                        
+                        <div class="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/5 hover:border-[#00f2ff]/30 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div id="icon-pump" class="p-2.5 bg-gray-800 text-gray-400 rounded-lg"><i class="fa-solid fa-faucet-drip"></i></div>
+                                <span class="material-icons-round text-[#00f2ff]">water_drop</span>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-200">1. ปั๊มน้ำหลัก (Water Pump)</div>
-                                    <div class="text-xs text-gray-500">พินระบบ S3: GPIO 4</div>
+                                    <div class="text-sm font-bold">Relay 1: Water Pump</div>
+                                    <div class="text-xs text-slate-500 font-mono">GPIO 4</div>
                                 </div>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="switch-pump" onchange="toggleRelay('pumpState', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-checked:after:bg-white"></div>
+                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-[#00f2ff] after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                             </label>
                         </div>
 
-                        <div class="flex justify-between items-center p-3 bg-gray-900/60 rounded-xl border border-gray-800">
+                        <div class="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/5 hover:border-[#00f2ff]/30 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div id="icon-fan" class="p-2.5 bg-gray-800 text-gray-400 rounded-lg"><i class="fa-solid fa-fan"></i></div>
+                                <span class="material-icons-round text-green-400">air</span>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-200">2. พัดลมระบายอากาศ (Fan)</div>
-                                    <div class="text-xs text-gray-500">พินระบบ S3: GPIO 5</div>
+                                    <div class="text-sm font-bold">Relay 2: Vent Fan</div>
+                                    <div class="text-xs text-slate-500 font-mono">GPIO 5</div>
                                 </div>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="switch-fan" onchange="toggleRelay('fanState', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-checked:after:bg-white"></div>
+                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-green-400 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                             </label>
                         </div>
 
-                        <div class="flex justify-between items-center p-3 bg-gray-900/60 rounded-xl border border-gray-800">
+                        <div class="flex justify-between items-center bg-white/5 p-4 rounded-lg border border-white/5 hover:border-[#00f2ff]/30 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div id="icon-light" class="p-2.5 bg-gray-800 text-gray-400 rounded-lg"><i class="fa-solid fa-lightbulb"></i></div>
+                                <span class="material-icons-round text-yellow-400">lightbulb</span>
                                 <div>
-                                    <div class="text-sm font-medium text-gray-200">3. หลอดไฟปลูกพืช (Grow Light)</div>
-                                    <div class="text-xs text-gray-500">พินระบบ S3: GPIO 6</div>
+                                    <div class="text-sm font-bold">Relay 3: Grow Light</div>
+                                    <div class="text-xs text-slate-500 font-mono">GPIO 6</div>
                                 </div>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="switch-light" onchange="toggleRelay('lightState', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 peer-checked:after:bg-white"></div>
+                                <div class="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-yellow-400 after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                             </label>
                         </div>
-                    </div>
-                </section>
 
-                <section class="cyber-card p-6 rounded-2xl">
-                    <h2 class="text-lg font-semibold text-gray-200 mb-4"><i class="fa-solid fa-sliders mr-2 text-amber-500"></i>การ์ดปรับตั้งค่าเกณฑ์จำกัดอัตโนมัติ</h2>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">ความชื้นดินที่ต้องรดน้ำ (ต่ำกว่าค่านี้):</label>
-                            <input type="number" id="config-soil" class="w-full bg-gray-900 border border-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">อุณหภูมิที่พัดลมต้องทำงาน (สูงกว่าค่านี้):</label>
-                            <input type="number" step="0.1" id="config-temp" class="w-full bg-gray-900 border border-gray-800 text-gray-200 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500">
-                        </div>
-                        <button onclick="saveThresholds()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2.5 rounded-xl font-medium tracking-wide transition shadow-lg shadow-blue-600/10">
-                            บันทึกเกณฑ์ตั้งค่าลงบอร์ด S3
-                        </button>
                     </div>
-                </section>
+                </div>
+
+                <div class="glass p-6 rounded-2xl hidden md:block">
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <span class="material-icons-round mr-2 text-[#7000ff]">memory</span>
+                        ESP32-S3 Pinout Reference
+                    </h3>
+                    <div class="relative aspect-square glass rounded-xl flex items-center justify-center p-4 overflow-hidden border border-[#7000ff]/20">
+                        <div class="w-32 h-48 bg-slate-900 border-2 border-slate-700 rounded flex flex-col items-center justify-center relative shadow-[0_0_30px_rgba(112,0,255,0.2)]">
+                            <span class="text-[10px] text-slate-500 mb-2 font-bold">ESPRESSIF</span>
+                            <div class="w-16 h-16 bg-slate-800 rounded-md border border-[#00f2ff]/50 mb-2 flex items-center justify-center text-[10px] font-mono text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.2)]">ESP32-S3</div>
+                            <div class="grid grid-cols-2 gap-x-20 absolute -inset-x-4 inset-y-8 h-fit">
+                                <div class="flex flex-col gap-2">
+                                    <div class="w-2 h-1 bg-[#00f2ff]"></div><div class="w-2 h-1 bg-[#00f2ff]"></div><div class="w-2 h-1 bg-slate-700"></div><div class="w-2 h-1 bg-slate-700"></div>
+                                </div>
+                                <div class="flex flex-col gap-2 items-end">
+                                    <div class="w-2 h-1 bg-[#00f2ff]"></div><div class="w-2 h-1 bg-slate-700"></div><div class="w-2 h-1 bg-green-400"></div><div class="w-2 h-1 bg-slate-700"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass p-6 rounded-2xl bg-gradient-to-br from-[#00f2ff]/5 to-transparent">
+                    <h3 class="text-lg font-bold mb-4">Cloud Sync Status</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 text-sm">Firebase RTDB</span>
+                            <span class="font-mono text-green-400 text-sm flex items-center"><span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span>Connected</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400 text-sm">Update Rate</span>
+                            <span class="font-mono text-[#00f2ff]">3000 ms</span>
+                        </div>
+                    </div>
+                </div>
 
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
-        // ⚠️ แก้ไขข้อมูล API KEYS และค่านำเข้าต่างๆ ตรงนี้ครับ
+        // API Keys Configuration
         const FIREBASE_URL = "https://ubonpan-smartfarm-default-rtdb.firebaseio.com/farm.json";
         const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
-        const GEMINI_API_KEY = " AIzaSyAOh5oA6FI0tKuZ3pbyKGYyi48vQlH1Gk0";
+        const GEMINI_API_KEY = "AIzaSyAOh5oA6FI0tKuZ3pbyKGYyi48vQlH1Gk0";
 
-        // ตัวแปรเก็บประวัติตัวเลขเพื่อทำกราฟย้อนหลังแบบจำลอง
+        // Variables for Chart
         let tempHistory = [28, 29, 31, 32, 30, 29];
         let labelsHistory = ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
         let chart;
 
-        // ฟังก์ชันอัปเดตเวลาบนหน้าจอ
+        // Clock Update
         setInterval(() => {
             const now = new Date();
             document.getElementById('web-time').innerText = now.toLocaleTimeString('th-TH');
         }, 1000);
 
-        // ฟังก์ชันดึงค่าพิกัด Geolocation และส่งต่อไปยัง OpenWeather API
+        // OpenWeather Geolocation Logic
         function initLocationAndWeather() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition((position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     
-                    // เรียกดึงข้อมูลสภาพอากาศสากล
                     fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
                         .then(res => res.json())
                         .then(data => {
-                            document.getElementById('weather-location').innerText = `${data.name}, ${data.sys.country} (${lat.toFixed(2)}, ${lon.toFixed(2)})`;
+                            document.getElementById('weather-location').innerText = `${data.name}, ${data.sys.country}`;
                             document.getElementById('weather-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
                             document.getElementById('weather-desc').innerText = data.weather[0].description;
                         }).catch(() => {
-                            document.getElementById('weather-desc').innerText = "กรุณาเช็ค API Key สภาพอากาศ";
+                            document.getElementById('weather-desc').innerText = "API Weather Error";
                         });
                 }, () => {
-                    document.getElementById('weather-location').innerText = "ไม่ได้เปิดการแชร์พิกัดสถานที่";
+                    document.getElementById('weather-location').innerText = "ปิดการแชร์พิกัด";
                 });
             }
         }
 
-        // ฟังก์ชัน Real-time Polling ดึงค่าจาก Firebase มาอัปเดตหน้าจอเว็บ (เช็คทุกๆ 3 วินาที)
+        // Firebase Realtime Polling
         function pollFirebaseData() {
             fetch(FIREBASE_URL)
                 .then(res => res.json())
                 .then(data => {
                     if (data) {
-                        // อัปเดตข้อมูลเซนเซอร์ในโฮสต์โหนด 1
-                        document.getElementById('node1-temp').innerText = data.temp ? `${data.temp.toFixed(1)} °C` : "-- °C";
-                        document.getElementById('node1-hum').innerText = data.hum ? `${data.hum.toFixed(1)} %` : "-- %";
-                        document.getElementById('node1-soil').innerText = data.soil || "--";
+                        // Render Dynamic Nodes using the new UI styling
+                        const container = document.getElementById('nodes-container');
+                        container.innerHTML = ''; // Clear old nodes
+                        
+                        let nodeExists = false;
+                        Object.keys(data).forEach(key => {
+                            if (key.startsWith('node') || key === 'temp') { // Fallback for direct data or node-based
+                                nodeExists = true;
+                                let nodeNum = key.startsWith('node') ? key.replace('node','') : '1';
+                                let nodeData = key.startsWith('node') ? data[key] : data;
+                                
+                                let tempVal = nodeData.temp != null ? nodeData.temp.toFixed(1) : '--';
+                                let humVal = nodeData.hum != null ? nodeData.hum.toFixed(1) : '--';
+                                let soilVal = nodeData.soil != null ? nodeData.soil : '--';
 
-                        // อัปเดตสถานะสวิตช์ปุ่มรีเลย์ตามค่าจริงบนบอร์ด
+                                container.innerHTML += `
+                                    <div class="bg-white/5 border border-white/10 hover:border-[#00f2ff]/30 transition-colors p-5 rounded-xl space-y-4">
+                                        <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                                            <span class="font-bold text-[#00f2ff] flex items-center">
+                                                <span class="material-icons-round mr-2 text-sm">sensors</span> Node #${nodeNum}
+                                            </span>
+                                            <span class="text-xs text-green-400 flex items-center"><span class="w-2 h-2 rounded-full bg-green-400 mr-1.5 animate-pulse"></span> Online</span>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-3 text-center">
+                                            <div class="bg-slate-900/80 p-3 rounded-lg border border-white/5">
+                                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">Temp</span>
+                                                <span class="text-lg font-bold text-red-400 node-temp-val">${tempVal}</span><span class="text-xs text-slate-500">°C</span>
+                                            </div>
+                                            <div class="bg-slate-900/80 p-3 rounded-lg border border-white/5">
+                                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">Humi</span>
+                                                <span class="text-lg font-bold text-[#00f2ff] node-hum-val">${humVal}</span><span class="text-xs text-slate-500">%</span>
+                                            </div>
+                                            <div class="bg-slate-900/80 p-3 rounded-lg border border-white/5">
+                                                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mb-1">Soil</span>
+                                                <span class="text-lg font-bold text-amber-400 node-soil-val">${soilVal}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+
+                        // Update Relays
                         document.getElementById('switch-pump').checked = data.pumpState === 1;
                         document.getElementById('switch-fan').checked = data.fanState === 1;
                         document.getElementById('switch-light').checked = data.lightState === 1;
 
-                        // ปรับสีไอคอนตามสถานะเปิด/ปิด
-                        updateIconColor('icon-pump', data.pumpState === 1, 'text-blue-400', 'bg-blue-500/10');
-                        updateIconColor('icon-fan', data.fanState === 1, 'text-green-400', 'bg-green-500/10');
-                        updateIconColor('icon-light', data.lightState === 1, 'text-yellow-400', 'bg-yellow-500/10');
-
-                        // ใส่ค่าตั้งต้นลงในช่อง Input ปรับเกณฑ์ (ถ้ายังไม่มีการพิมพ์ค่าใหม่)
-                        if(!document.activeElement.classList.contains('focus:border-blue-500')) {
+                        // Update Config Inputs if not focused
+                        if(!document.activeElement.classList.contains('focus:border-[#00f2ff]')) {
                             document.getElementById('config-soil').placeholder = data.soilLimit || 40;
                             document.getElementById('config-temp').placeholder = data.tempLimit || 35.0;
                         }
@@ -245,54 +364,108 @@
                 });
         }
 
-        function updateIconColor(id, isActive, textColor, bgColor) {
-            const el = document.getElementById(id);
-            if(isActive) {
-                el.className = `p-2.5 rounded-lg ${textColor} ${bgColor} border border-current/20`;
-            } else {
-                el.className = "p-2.5 bg-gray-800 text-gray-400 rounded-lg";
-            }
-        }
-
-        // ฟังก์ชันสั่งงานเปิด/ปิดรีเลย์แมนนวลจากหน้าเว็บ ส่งค่ากลับไปที่ Firebase (PATCH)
+        // Toggle Relay to Firebase
         function toggleRelay(key, status) {
             const val = status ? 1 : 0;
             let bodyData = {};
             bodyData[key] = val;
-
             fetch(FIREBASE_URL, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(bodyData)
-            }).then(() => console.log(`${key} อัปเดตเป็น ${val}`));
+            });
         }
 
-        // ฟังก์ชันบันทึกเกณฑ์ข้อจำกัด (Threshold) ส่งไปให้บอร์ด S3 นำไปรัน Logic ภายใน
+        // Save Thresholds to Firebase
         function saveThresholds() {
             const soil = parseInt(document.getElementById('config-soil').value) || 40;
             const temp = parseFloat(document.getElementById('config-temp').value) || 35.0;
-
             fetch(FIREBASE_URL, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ soilLimit: soil, tempLimit: temp })
-            }).then(() => alert("บันทึกเกณฑ์ข้อจำกัดเรียบร้อย บอร์ด S3 รับทราบแล้ว"));
+            }).then(() => alert("บันทึกการตั้งค่าลงบอร์ด S3 สำเร็จแล้ว!"));
         }
 
-        // ฟังก์ชันดึงขีดความสามารถของ Gemini API นำค่าปัจจุบันไปรันการประมวลผลคำแนะนำ
+        // Gemini AI Integration
         function runGeminiAI() {
             const resBox = document.getElementById('ai-response');
-            resBox.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-2 text-purple-400"></i> Gemini กำลังประมวลผลข้อมูลฟาร์มของคุณ...';
+            resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse">กำลังประมวลผลข้อมูลฟาร์ม โปรดรอสักครู่...</span>';
 
-            // ดึงข้อมูลหน้าจอปัจจุบันไปป้อนคำสั่งให้ AI
-            const currentTemp = document.getElementById('node1-temp').innerText;
-            const currentHum = document.getElementById('node1-hum').innerText;
-            const currentSoil = document.getElementById('node1-soil').innerText;
+            // ดึงค่าจากหน้าจอ (ถ้ามี)
+            const tempEl = document.querySelector('.node-temp-val');
+            const humEl = document.querySelector('.node-hum-val');
+            const soilEl = document.querySelector('.node-soil-val');
+            
+            const currentTemp = tempEl ? tempEl.innerText : '--';
+            const currentHum = humEl ? humEl.innerText : '--';
+            const currentSoil = soilEl ? soilEl.innerText : '--';
             const extWeather = document.getElementById('weather-desc').innerText;
 
-            const promptText = `คุณคือผู้เชี่ยวชาญด้านการเกษตรอัจฉริยะ (Smart Farming Analyst) ประจำสถานี UBONPAN STATION วิเคราะห์ข้อมูลเซนเซอร์ในฟาร์มปัจจุบันดังนี้:
-            - อุณหภูมิภายในโรงเรือน: ${currentTemp}
-            - ความชื้นในอากาศ: ${currentHum}
-            - ค่าความชื้นในดินปัจจุบัน: ${currentSoil} (เกณฑ์ต่ำกว่า 40 คือแห้ง)
-            - สภาพอากาศและพยากรณ์ภายนอกพื้นที่จากดาวเทียม: ${extWeather}
-            ช่วยประมวลผลสรุปสั้นๆ เป็นภาษาไทย 3 บรรทัด ว่าสภาพแวดล้อมสมบูรณ์ดีไหม และ AI แนะนำให้รีเลย์ปั๊มน้ำหร
+            const promptText = `คุณคือระบบ AI ประจำสถานี UBONPAN SMART FARM วิเคราะห์ข้อมูลดังนี้: อุณหภูมิ ${currentTemp}C, ความชื้นอากาศ ${currentHum}%, ความชื้นดิน ${currentSoil} (ต่ำกว่า 40 คือแห้ง), สภาพอากาศภายนอก: ${extWeather} สรุปสั้นๆ 2-3 บรรทัด ว่าสภาพแวดล้อมดีไหม ควรเปิดปั๊มน้ำหรือพัดลมหรือไม่`;
+
+            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.candidates && data.candidates[0].content.parts[0].text) {
+                    resBox.innerHTML = `<span class="text-white">${data.candidates[0].content.parts[0].text}</span>`;
+                } else {
+                    resBox.innerText = "การประมวลผลผิดพลาด";
+                }
+            })
+            .catch(() => {
+                resBox.innerText = "ไม่สามารถเชื่อมต่อ Gemini API ได้";
+            });
+        }
+
+        // Chart.js Setup with Cyberpunk Colors
+        function initChart() {
+            const ctx = document.getElementById('analyticsChart').getContext('2d');
+            
+            // สร้าง Gradient ให้เข้ากับธีม
+            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(0, 242, 255, 0.5)');
+            gradient.addColorStop(1, 'rgba(0, 242, 255, 0.0)');
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labelsHistory,
+                    datasets: [{
+                        label: 'อุณหภูมิโรงเรือน (°C)',
+                        data: tempHistory,
+                        borderColor: '#00f2ff',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#7000ff',
+                        pointBorderColor: '#00f2ff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'Space Grotesk' } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'Space Grotesk' } } }
+                    }
+                }
+            });
+        }
+
+        // Initialize System
+        initLocationAndWeather();
+        initChart();
+        pollFirebaseData();
+        setInterval(pollFirebaseData, 3000);
+    </script>
+</body>
+</html>
