@@ -98,7 +98,6 @@
         </div>
 
     </main>
-
     <script>
     const FIREBASE_URL = "https://ubonpan-smartfarm-default-rtdb.firebaseio.com/farm.json";
     const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
@@ -161,7 +160,7 @@
                                     <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                                         <div class="flex items-center gap-3">
                                             <span class="material-icons-round text-[#00f2ff] text-2xl">router</span>
-                                            <input type="text" value="${nodeName}" onchange="updateNodeName('${nodeId}', this.value)" class="node-name-input" placeholder="ตั้งชื่อโซน...">
+                                            <input type="text" value="${nodeName}" onblur="updateNodeName('${nodeId}', this.value)" onchange="updateNodeName('${nodeId}', this.value)" class="node-name-input" placeholder="ตั้งชื่อโซน...">
                                         </div>
                                         <span class="text-xs text-green-400 flex items-center bg-green-400/10 px-2 py-1 rounded-full"><span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span> Online</span>
                                     </div>
@@ -183,14 +182,14 @@
 
                                     <div class="flex justify-between items-center mb-4">
                                         <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">settings</span> Dynamic Relay Management</h4>
-                                        <button onclick="saveNodeConfig('${nodeId}')" class="bg-white/10 hover:bg-[#00f2ff] hover:text-black text-white text-xs px-3 py-1.5 rounded font-bold transition-colors">SAVE CONFIG</button>
+                                        <button onclick="saveNodeConfig('${nodeId}', this)" class="bg-white/10 hover:bg-[#00f2ff] hover:text-black text-white text-xs px-3 py-1.5 rounded font-bold transition-colors">SAVE CONFIG</button>
                                     </div>
 
                                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="relays-${nodeId}">
-                                        ${generateRelayCard(nodeId, 'pump', 'ปั๊มน้ำ (ดิน)', 'water_drop', 'blue-400', 'ดิน < 40%')}
-                                        ${generateRelayCard(nodeId, 'fan', 'พัดลม (อุณหภูมิ)', 'air', 'red-400', 'อุณหภูมิ > 35°C')}
-                                        ${generateRelayCard(nodeId, 'mist', 'พ่นหมอก (ชื้น)', 'cloud_download', '[#00f2ff]', 'ชื้น < 60%')}
-                                        ${generateRelayCard(nodeId, 'light', 'หลอดไฟ (เวลา)', 'lightbulb', 'yellow-400', 'เปิดตามเวลา')}
+                                        ${generateRelayCard(nodeId, 'pump', 'ปั๊มน้ำ (ดิน)', 'water_drop', 'blue-400', 'ดิน < 40%', nodeData)}
+                                        ${generateRelayCard(nodeId, 'fan', 'พัดลม (อุณหภูมิ)', 'air', 'red-400', 'อุณหภูมิ > 35°C', nodeData)}
+                                        ${generateRelayCard(nodeId, 'mist', 'พ่นหมอก (ชื้น)', 'cloud_download', '[#00f2ff]', 'ชื้น < 60%', nodeData)}
+                                        ${generateRelayCard(nodeId, 'light', 'หลอดไฟ (เวลา)', 'lightbulb', 'yellow-400', 'เปิดตามเวลา', nodeData)}
                                     </div>
                                 </div>`;
                                 container.insertAdjacentHTML('beforeend', html);
@@ -209,9 +208,21 @@
                 });
         }
 
-        // ฟังก์ชันสร้างการ์ด Relay พร้อมระบบเลือกวันแบบเจาะจง (จ.-อา.)
-        function generateRelayCard(nodeId, type, title, icon, color, placeholder) {
+        // ฟังก์ชันสร้างการ์ด Relay ดึงค่า Config จาก Firebase มาแสดง (ถ้ามี)
+        function generateRelayCard(nodeId, type, title, icon, color, placeholder, nodeData) {
             if (hiddenRelays[`${nodeId}-${type}`]) return ''; 
+            
+            // ดึงค่า Config จากฐานข้อมูลที่บันทึกไว้
+            let conf = nodeData.config || {};
+            let mode = conf[`${type}_mode`] || 'auto';
+            let logic = conf[`${type}_logic`] || '';
+            let tStart = conf[`${type}_timeStart`] || '';
+            let tEnd = conf[`${type}_timeEnd`] || '';
+            let dur = conf[`${type}_dur`] || '';
+            let dayMode = conf[`${type}_dayMode`] || 'all';
+            
+            let daysDisplay = (dayMode === 'custom') ? 'flex' : 'none';
+
             return `
             <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative hover:border-white/20 transition-all" id="card-${nodeId}-${type}">
                 <button onclick="hideRelayCard('${nodeId}', '${type}')" class="absolute top-2 right-2 text-slate-500 hover:text-red-400" title="ลบอุปกรณ์นี้"><span class="material-icons-round text-sm">close</span></button>
@@ -220,23 +231,31 @@
                     <span class="font-bold text-xs text-white">${title}</span>
                 </div>
                 <div class="space-y-2 mb-3">
-                    <select id="${nodeId}-${type}-mode" class="config-input bg-black/50 text-[10px]"><option value="auto">MODE: AUTO</option><option value="manual">MODE: MANUAL</option></select>
-                    <input type="text" id="${nodeId}-${type}-logic" placeholder="เงื่อนไข: ${placeholder}" class="config-input text-[10px]">
-                    <div class="flex gap-1"><input type="time" class="config-input text-[10px]" title="เวลาเริ่ม"><input type="time" class="config-input text-[10px]" title="เวลาหยุด"></div>
-                    <input type="number" id="${nodeId}-${type}-dur" placeholder="ระยะเวลา (นาที)" class="config-input text-[10px]">
+                    <select id="${nodeId}-${type}-mode" class="config-input bg-black/50 text-[10px]">
+                        <option value="auto" ${mode === 'auto' ? 'selected' : ''}>MODE: AUTO</option>
+                        <option value="manual" ${mode === 'manual' ? 'selected' : ''}>MODE: MANUAL</option>
+                    </select>
+                    <input type="text" id="${nodeId}-${type}-logic" value="${logic}" placeholder="เงื่อนไข: ${placeholder}" class="config-input text-[10px]">
+                    <div class="flex gap-1">
+                        <input type="time" id="${nodeId}-${type}-timeStart" value="${tStart}" class="config-input text-[10px]" title="เวลาเริ่ม">
+                        <input type="time" id="${nodeId}-${type}-timeEnd" value="${tEnd}" class="config-input text-[10px]" title="เวลาหยุด">
+                    </div>
+                    <input type="number" id="${nodeId}-${type}-dur" value="${dur}" placeholder="ระยะเวลา (นาที)" class="config-input text-[10px]">
                     
                     <div class="flex flex-col gap-1 w-full">
-                        <select onchange="document.getElementById('days-${nodeId}-${type}').style.display = (this.value === 'custom') ? 'flex' : 'none'" class="config-input text-[10px]">
-                            <option value="all">ทำงานทุกวัน (All Days)</option>
-                            <option value="custom">กำหนดวันเอง (Custom)</option>
+                        <select id="${nodeId}-${type}-dayMode" onchange="document.getElementById('days-${nodeId}-${type}').style.display = (this.value === 'custom') ? 'flex' : 'none'" class="config-input text-[10px]">
+                            <option value="all" ${dayMode === 'all' ? 'selected' : ''}>ทำงานทุกวัน (All Days)</option>
+                            <option value="custom" ${dayMode === 'custom' ? 'selected' : ''}>กำหนดวันเอง (Custom)</option>
                         </select>
-                        <div id="days-${nodeId}-${type}" style="display: none;" class="w-full justify-between gap-[2px] mt-1">
-                            ${['จ','อ','พ','พฤ','ศ','ส','อา'].map(d => `
+                        <div id="days-${nodeId}-${type}" style="display: ${daysDisplay};" class="w-full justify-between gap-[2px] mt-1">
+                            ${['จ','อ','พ','พฤ','ศ','ส','อา'].map((d, idx) => {
+                                let isChecked = conf[`${type}_day_${idx}`] === true ? 'checked' : '';
+                                return `
                                 <label class="cursor-pointer flex-1">
-                                    <input type="checkbox" class="peer sr-only">
+                                    <input type="checkbox" id="${nodeId}-${type}-day-${idx}" ${isChecked} class="peer sr-only">
                                     <div class="w-full text-center rounded-[3px] bg-white/5 text-[8px] py-1 text-slate-400 peer-checked:bg-[#00f2ff] peer-checked:text-slate-900 peer-checked:font-bold hover:bg-white/20 transition-all">${d}</div>
-                                </label>
-                            `).join('')}
+                                </label>`;
+                            }).join('')}
                         </div>
                     </div>
                     
@@ -278,103 +297,141 @@
             fetch(FIREBASE_URL, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         }
 
-        function saveNodeConfig(nodeId) {
-            alert(`บันทึกการตั้งค่าลอจิกของ [โซน ${nodeId}] ขึ้นระบบสำเร็จ!`);
+        // ฟังก์ชันอ่านค่าจากกล่อง Input ทั้งหมดแล้วส่งเข้า Firebase
+        function saveNodeConfig(nodeId, btnElement) {
+            const types = ['pump', 'fan', 'mist', 'light'];
+            let configPayload = {};
+            
+            types.forEach(type => {
+                if (document.getElementById(`card-${nodeId}-${type}`)) {
+                    configPayload[`${type}_mode`] = document.getElementById(`${nodeId}-${type}-mode`).value;
+                    configPayload[`${type}_logic`] = document.getElementById(`${nodeId}-${type}-logic`).value;
+                    configPayload[`${type}_timeStart`] = document.getElementById(`${nodeId}-${type}-timeStart`).value;
+                    configPayload[`${type}_timeEnd`] = document.getElementById(`${nodeId}-${type}-timeEnd`).value;
+                    configPayload[`${type}_dur`] = document.getElementById(`${nodeId}-${type}-dur`).value;
+                    configPayload[`${type}_dayMode`] = document.getElementById(`${nodeId}-${type}-dayMode`).value;
+                    
+                    // บันทึกวันทำงาน (จ.-อา.)
+                    for(let i=0; i<7; i++) {
+                        let dayCb = document.getElementById(`${nodeId}-${type}-day-${i}`);
+                        if (dayCb) configPayload[`${type}_day_${i}`] = dayCb.checked;
+                    }
+                }
+            });
+
+            let payload = {};
+            // บันทึกลงฐานข้อมูลในโฟลเดอร์ /config ของแต่ละโหนด
+            if (nodeId === 'node1') payload['config'] = configPayload;
+            else payload[`${nodeId}/config`] = configPayload;
+
+            // เปลี่ยนข้อความปุ่มเพื่อบอกสถานะ
+            let originalText = btnElement.innerText;
+            btnElement.innerText = "กำลังบันทึก...";
+
+            fetch(FIREBASE_URL, { 
+                method: "PATCH", 
+                headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify(payload) 
+            })
+            .then(() => {
+                btnElement.innerText = "บันทึกสำเร็จ!";
+                setTimeout(() => { btnElement.innerText = originalText; }, 2000);
+            })
+            .catch(err => {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + err.message);
+                btnElement.innerText = originalText;
+            });
         }
 
-        // ฟังก์ชันสำหรับตั้งค่าและบันทึกคีย์
-function setGeminiKey() {
-    let currentKey = localStorage.getItem('gemini_api_key') || '';
-    let newKey = prompt("กรุณากรอก Gemini API Key เพื่อเปิดระบบ AI ของ UBONPAN STATION:\n(คีย์จะถูกบันทึกไว้ในเครื่องของคุณเท่านั้น ปลอดภัยจากบอท GitHub)", currentKey);
-    
-    if (newKey !== null && newKey.trim() !== "") {
-        localStorage.setItem('gemini_api_key', newKey.trim());
-        alert("บันทึก API Key เรียบร้อยแล้ว! กรุณากดปุ่มวิเคราะห์อีกครั้ง");
-    }
-    function clearKey() {
-    localStorage.removeItem('gemini_api_key');
-    alert("ล้างคีย์ออกจากระบบแล้ว! กรุณากดปุ่มวิเคราะห์เพื่อกรอกคีย์ใหม่ครับ");
-    }
-    
-}
+        function setGeminiKey() {
+            let currentKey = localStorage.getItem('gemini_api_key') || '';
+            let newKey = prompt("กรุณากรอก Gemini API Key เพื่อเปิดระบบ AI ของ UBONPAN STATION:\n(คีย์จะถูกบันทึกไว้ในเครื่องของคุณเท่านั้น ปลอดภัยจากบอท GitHub)", currentKey);
+            
+            if (newKey !== null && newKey.trim() !== "") {
+                localStorage.setItem('gemini_api_key', newKey.trim());
+                alert("บันทึก API Key เรียบร้อยแล้ว! กรุณากดปุ่มวิเคราะห์อีกครั้ง");
+            }
+        }
 
-// ฟังก์ชันหลัก
-function runGeminiAI() {
-    const resBox = document.getElementById('ai-response');
-    if (!resBox) {
-        alert("ไม่พบกล่องแสดงผล ai-response บนหน้าเว็บครับ");
-        return; 
-    }
-    
-    // 1. ตรวจสอบว่ามีคีย์ในเครื่องหรือไม่ ถ้าไม่มีให้เด้ง Popup ถามทันที
-    let apiKey = localStorage.getItem('gemini_api_key');
-    if (!apiKey) {
-        setGeminiKey();
-        return; // หยุดการทำงานรอให้ใส่คีย์ก่อน
-    }
+        // ดึงฟังก์ชัน clearKey ออกมาข้างนอกให้ถูกต้อง
+        function clearKey() {
+            localStorage.removeItem('gemini_api_key');
+            alert("ล้างคีย์ออกจากระบบแล้ว! กรุณากดปุ่มวิเคราะห์เพื่อกรอกคีย์ใหม่ครับ");
+        }
 
-    resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i> ศูนย์ UBONPAN STATION กำลังประมวลผล...</span>';
+        // ฟังก์ชันหลัก AI
+        function runGeminiAI() {
+            const resBox = document.getElementById('ai-response');
+            if (!resBox) {
+                alert("ไม่พบกล่องแสดงผล ai-response บนหน้าเว็บครับ");
+                return; 
+            }
+            
+            let apiKey = localStorage.getItem('gemini_api_key');
+            if (!apiKey) {
+                setGeminiKey();
+                return; 
+            }
 
-    const wTempEl = document.getElementById('w-temp');
-    const wCloudEl = document.getElementById('w-cloud');
-    const wPm25El = document.getElementById('w-pm25');
-    
-    const wTemp = wTempEl ? wTempEl.innerText : 'N/A';
-    const wCloud = wCloudEl ? wCloudEl.innerText : 'N/A';
-    const wPm25 = wPm25El ? wPm25El.innerText : 'N/A';
-    
-    let temps = [], soils = [];
-    document.querySelectorAll('[id^="val-node"][id$="-temp"]').forEach(el => { 
-        let v = parseFloat(el.innerText); 
-        if(!isNaN(v)) temps.push(v); 
-    });
-    document.querySelectorAll('[id^="val-node"][id$="-soil"]').forEach(el => { 
-        let v = parseFloat(el.innerText); 
-        if(!isNaN(v)) soils.push(v); 
-    });
-    
-    let avgTemp = temps.length > 0 ? (temps.reduce((a,b)=>a+b)/temps.length).toFixed(1) : '--';
-    let avgSoil = soils.length > 0 ? (soils.reduce((a,b)=>a+b)/soils.length).toFixed(1) : '--';
+            resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i> ศูนย์ UBONPAN STATION กำลังประมวลผล...</span>';
 
-    // 2. ปรับ Prompt เป็นแบบแบ่งข้อ เพื่อให้อ่านง่ายและชัดเจนบนหน้าเว็บ
-    const promptText = `คุณคือ AI ผู้ช่วยประจำศูนย์ฟาร์มอัจฉริยะ วิเคราะห์สภาพปัจจุบัน: 
+            const wTempEl = document.getElementById('w-temp');
+            const wCloudEl = document.getElementById('w-cloud');
+            const wPm25El = document.getElementById('w-pm25');
+            
+            const wTemp = wTempEl ? wTempEl.innerText : 'N/A';
+            const wCloud = wCloudEl ? wCloudEl.innerText : 'N/A';
+            const wPm25 = wPm25El ? wPm25El.innerText : 'N/A';
+            
+            let temps = [], soils = [];
+            document.querySelectorAll('[id^="val-node"][id$="-temp"]').forEach(el => { 
+                let v = parseFloat(el.innerText); 
+                if(!isNaN(v)) temps.push(v); 
+            });
+            document.querySelectorAll('[id^="val-node"][id$="-soil"]').forEach(el => { 
+                let v = parseFloat(el.innerText); 
+                if(!isNaN(v)) soils.push(v); 
+            });
+            
+            let avgTemp = temps.length > 0 ? (temps.reduce((a,b)=>a+b)/temps.length).toFixed(1) : '--';
+            let avgSoil = soils.length > 0 ? (soils.reduce((a,b)=>a+b)/soils.length).toFixed(1) : '--';
+
+            const promptText = `คุณคือ AI ผู้ช่วยประจำศูนย์ฟาร์มอัจฉริยะ วิเคราะห์สภาพปัจจุบัน: 
 สภาพแวดล้อม: อุณหภูมิ ${wTemp} (${wCloud}), PM2.5: ${wPm25}
 ภายในฟาร์ม: อุณหภูมิเฉลี่ย ${avgTemp}°C, ความชื้นดิน ${avgSoil}%
 โปรดประเมินสถานการณ์โดยพิมพ์ตอบกลับแบบกระชับ เข้าใจง่าย แบ่งเป็น 2 หัวข้อ:
 1. ผลกระทบ: (สภาพอากาศนี้พืชจะรู้สึกอย่างไร)
 2. การจัดการ: (ควรเปิด/ปิด ปั๊มน้ำหรือพัดลมหรือไม่ อย่างไร)`;
 
-    // เปลี่ยนมาใช้โมเดล gemini-1.5-flash-latest แทน 
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
-    fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error(`Code: ${res.status} (${res.statusText})`);
+            fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`Code: ${res.status} (${res.statusText})`);
+                }
+                return res.json();
+            })
+            .then(data => {
+                if(data.candidates && data.candidates[0].content.parts[0].text) {
+                    let rawText = data.candidates[0].content.parts[0].text;
+                    let formattedText = rawText.replace(/\n/g, '<br>');
+                    resBox.innerHTML = `<span class="text-white text-xs md:text-sm leading-relaxed">${formattedText}</span>`;
+                } else {
+                    resBox.innerText = "API ไม่ส่งข้อความกลับมา";
+                    alert("API ตอบกลับมาแล้ว แต่ไม่มีข้อความครับ");
+                }
+            })
+            .catch(error => { 
+                resBox.innerHTML = `<span class="text-red-500 font-bold">❌ ผิดพลาด: ${error.message}</span>`; 
+                alert("การเชื่อมต่อล้มเหลว!\nสาเหตุ: " + error.message + "\n\nหากเกิด Error 400 หรือ 401 อาจเป็นเพราะคีย์ผิดหรือหมดอายุ สามารถลบแคชเบราว์เซอร์แล้วกรอกคีย์ใหม่ได้ครับ");
+            });
         }
-        return res.json();
-    })
-    .then(data => {
-        if(data.candidates && data.candidates[0].content.parts[0].text) {
-            let rawText = data.candidates[0].content.parts[0].text;
-            // 3. แปลง \n เป็น <br> เพื่อจัดบรรทัดให้สวยงาม
-            let formattedText = rawText.replace(/\n/g, '<br>');
-            resBox.innerHTML = `<span class="text-white text-xs md:text-sm leading-relaxed">${formattedText}</span>`;
-        } else {
-            resBox.innerText = "API ไม่ส่งข้อความกลับมา";
-            alert("API ตอบกลับมาแล้ว แต่ไม่มีข้อความครับ");
-        }
-    })
-    .catch(error => { 
-        resBox.innerHTML = `<span class="text-red-500 font-bold">❌ ผิดพลาด: ${error.message}</span>`; 
-        // เพิ่มคำแนะนำเผื่อกรณีคีย์มีปัญหา
-        alert("การเชื่อมต่อล้มเหลว!\nสาเหตุ: " + error.message + "\n\nหากเกิด Error 400 หรือ 401 อาจเป็นเพราะคีย์ผิดหรือหมดอายุ สามารถลบแคชเบราว์เซอร์แล้วกรอกคีย์ใหม่ได้ครับ");
-    });
-}
+        
         initLocationAndWeather();
         pollFirebaseData();
         setInterval(pollFirebaseData, 3000);
