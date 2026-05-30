@@ -111,7 +111,8 @@
     <label class="text-white text-sm">ตั้งค่า Gemini API Key:</label>
     <input type="password" id="key-input" class="w-full mt-1 p-2 text-black rounded" placeholder="กรอก API Key เริ่มต้นด้วย AIza...">
     <button onclick="saveKey()" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded">บันทึกคีย์</button>
-            </div>
+    <button onclick="clearKey()" class="mt-2 bg-red-500 text-white px-4 py-1 rounded ml-2">ล้างคีย์</button>
+</div>
         </section>
 
         <div id="dynamic-farm-container" class="space-y-8">
@@ -315,6 +316,11 @@ function setGeminiKey() {
         localStorage.setItem('gemini_api_key', newKey.trim());
         alert("บันทึก API Key เรียบร้อยแล้ว! กรุณากดปุ่มวิเคราะห์อีกครั้ง");
     }
+    function clearKey() {
+    localStorage.removeItem('gemini_api_key');
+    alert("ล้างคีย์ออกจากระบบแล้ว! กรุณากดปุ่มวิเคราะห์เพื่อกรอกคีย์ใหม่ครับ");
+    }
+    
 }
 
 // ฟังก์ชันหลัก
