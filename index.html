@@ -198,10 +198,27 @@
             "อุบลพันธุ์": "เบ04500"
         };
 
-        // 1. ฟังก์ชันสร้างการ์ดล่วงหน้าทันทีที่เปิดเว็บ ไม่ต้องรอเน็ต
+        // --- ระบบเช็คสิทธิ์สำหรับกล่องพิมพ์ข้อมูล (Focus Check) ---
+        function checkFocus(el) {
+            if (!currentUser) {
+                el.blur(); // เด้งเคอร์เซอร์ออกถ้ายังไม่ล็อกอิน
+                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานเพื่อตั้งค่า");
+            }
+        }
+
+        // --- ระบบเช็คสิทธิ์สำหรับสวิตช์ (Toggle Check) ---
+        function checkToggle(el, nodeId, type) {
+            if (!currentUser) {
+                el.checked = !el.checked; // ดีดสวิตช์กลับ
+                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อน");
+            } else {
+                toggleRelay(nodeId, type, el.checked);
+            }
+        }
+
         function generateNodePlaceholders() {
             const container = document.getElementById('dynamic-farm-container');
-            const targetNodes = ['node1', 'node2']; // โชว์ 2 บอร์ดรอไว้เลย
+            const targetNodes = ['node1', 'node2']; 
             container.innerHTML = '';
 
             targetNodes.forEach(nodeId => {
@@ -211,7 +228,7 @@
                     <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                         <div class="flex items-center gap-3">
                             <span class="material-icons-round text-[#00f2ff] text-2xl">router</span>
-                            <input type="text" id="input-name-${nodeId}" value="${defaultName}" onfocus="requireAuth(() => { this.blur(); })" onchange="requireAuth(() => updateNodeName('${nodeId}', this.value))" class="node-name-input" placeholder="ตั้งชื่อโซน...">
+                            <input type="text" id="input-name-${nodeId}" value="${defaultName}" onfocus="checkFocus(this)" onchange="requireAuth(() => updateNodeName('${nodeId}', this.value))" class="node-name-input" placeholder="ตั้งชื่อโซน...">
                         </div>
                         <span class="text-xs text-slate-500 flex items-center bg-white/5 px-2 py-1 rounded-full" id="status-${nodeId}"><span class="w-2 h-2 rounded-full bg-slate-500 mr-2"></span> รอการเชื่อมต่อ...</span>
                     </div>
@@ -265,16 +282,16 @@
                     <span class="font-bold text-xs text-white">${title}</span>
                 </div>
                 <div class="space-y-2 mb-3">
-                    <select id="${nodeId}-${type}-mode" onfocus="requireAuth(() => this.blur())" class="config-input bg-black/50 text-[10px]"><option value="auto">MODE: AUTO</option><option value="manual">MODE: MANUAL</option></select>
-                    <input type="text" id="${nodeId}-${type}-logic" placeholder="เงื่อนไข: ${placeholder}" onfocus="requireAuth(() => this.blur())" class="config-input text-[10px]">
-                    <div class="flex gap-1"><input type="time" id="${nodeId}-${type}-timeStart" onfocus="requireAuth(() => this.blur())" class="config-input text-[10px]"><input type="time" id="${nodeId}-${type}-timeEnd" onfocus="requireAuth(() => this.blur())" class="config-input text-[10px]"></div>
-                    <input type="number" id="${nodeId}-${type}-dur" placeholder="ระยะเวลา (นาที)" onfocus="requireAuth(() => this.blur())" class="config-input text-[10px]">
-                    <select id="${nodeId}-${type}-dayMode" onfocus="requireAuth(() => this.blur())" class="config-input text-[10px]"><option value="all">ทำงานทุกวัน (All Days)</option></select>
+                    <select id="${nodeId}-${type}-mode" onfocus="checkFocus(this)" class="config-input bg-black/50 text-[10px]"><option value="auto">MODE: AUTO</option><option value="manual">MODE: MANUAL</option></select>
+                    <input type="text" id="${nodeId}-${type}-logic" placeholder="เงื่อนไข: ${placeholder}" onfocus="checkFocus(this)" class="config-input text-[10px]">
+                    <div class="flex gap-1"><input type="time" id="${nodeId}-${type}-timeStart" onfocus="checkFocus(this)" class="config-input text-[10px]"><input type="time" id="${nodeId}-${type}-timeEnd" onfocus="checkFocus(this)" class="config-input text-[10px]"></div>
+                    <input type="number" id="${nodeId}-${type}-dur" placeholder="ระยะเวลา (นาที)" onfocus="checkFocus(this)" class="config-input text-[10px]">
+                    <select id="${nodeId}-${type}-dayMode" onfocus="checkFocus(this)" class="config-input text-[10px]"><option value="all">ทำงานทุกวัน (All Days)</option></select>
                 </div>
                 <div class="flex justify-between items-center bg-black/40 p-2 rounded mt-3 border border-white/5">
                     <span class="text-[10px] text-slate-400">สวิตช์แมนนวล</span>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="switch-${nodeId}-${type}" onchange="requireAuth(() => toggleRelay('${nodeId}', '${type}', this.checked), () => {this.checked = !this.checked;})" class="sr-only peer">
+                        <input type="checkbox" id="switch-${nodeId}-${type}" onchange="checkToggle(this, '${nodeId}', '${type}')" class="sr-only peer">
                         <div class="w-7 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-${color} after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all"></div>
                     </label>
                 </div>
@@ -318,13 +335,14 @@
                     </div>
                 </div>
                 <div class="flex gap-1">
-                    <select onfocus="requireAuth(() => this.blur())" class="config-input text-[9px] bg-black/50"><option>โหมด COOL</option></select>
-                    <select onfocus="requireAuth(() => this.blur())" class="config-input text-[9px] bg-black/50"><option>พัดลม AUTO</option></select>
+                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>โหมด COOL</option></select>
+                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>พัดลม AUTO</option></select>
                 </div>
             </div>`;
         }
 
-        // 2. ฟังก์ชันโหลดพิกัดอากาศแบบมีระบบ Fallback สำรอง (แก้ปัญหาหน้าเว็บค้าง)
+        // --- ฟังก์ชันหลักอื่นๆ ---
+
         function fetchWeatherData(lat, lon) {
             fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
                 .then(res => res.json())
@@ -346,27 +364,24 @@
         }
 
         function initLocationAndWeather() {
-            // พิกัดสำรอง: อำเภอบ้านโป่ง ราชบุรี (กรณีผู้ใช้บล็อก GPS จะโหลดตรงนี้ทันที)
-            const fallbackLat = 13.8167;
+            const fallbackLat = 13.8167; // บ้านโป่ง ราชบุรี
             const fallbackLon = 99.8833;
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => fetchWeatherData(pos.coords.latitude, pos.coords.longitude),
-                    (err) => fetchWeatherData(fallbackLat, fallbackLon) // ดึงข้อมูลบ้านโป่งแทนถ้าถูกบล็อก
+                    (err) => fetchWeatherData(fallbackLat, fallbackLon) 
                 );
             } else {
                 fetchWeatherData(fallbackLat, fallbackLon);
             }
         }
 
-        // 3. ระบบควบคุมสิทธิ์และการล็อกอิน
-        function requireAuth(allowedAction, failCallback = null) {
+        function requireAuth(allowedAction) {
             if (currentUser) {
                 allowedAction();
             } else {
                 showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาล็อกอินตามสิทธิ์ หากไม่มีบัญชีติดต่อผู้ดูแลระบบ");
-                if(failCallback) failCallback();
             }
         }
 
@@ -401,7 +416,6 @@
                     }
                 }).catch(() => { showToast("เกิดข้อผิดพลาดในการเชื่อมต่อสิทธิ์ความปลอดภัย"); });
         }
-
         function doLogout() {
             pushLog("ลงชื่อออกจากระบบควบคุม");
             sessionStorage.removeItem('currentUser');
@@ -494,8 +508,8 @@
             fetch(`${FIREBASE_URL}/users.json`).then(res => res.json()).then(data => {
                 if (!data) fetch(`${FIREBASE_URL}/users.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_USERS) });
             });
-                        }
-        // 4. ระบบ Sync ข้อมูลเข้าการ์ด (ทำงานต่อยอดจากการ์ดที่สร้างไว้แล้ว)
+        }
+
         function pollFirebaseData() {
             fetch(`${FIREBASE_URL}/farm.json`)
                 .then(res => res.json())
@@ -506,7 +520,6 @@
                         if(!nodeId.startsWith('node')) return;
                         let nodeData = data[nodeId];
                         
-                        // ถ้าระบบเจอบอร์ดออนไลน์ ให้เปลี่ยนสถานะ
                         const statusEl = document.getElementById(`status-${nodeId}`);
                         if(statusEl) statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span> <span class="text-green-400 font-bold">Online</span>`;
 
@@ -608,12 +621,11 @@
             }
         }
 
-        // ลำดับการรันคำสั่งเมื่อเปิดหน้าเว็บ (Boot Sequence)
-        generateNodePlaceholders(); // 1. วาดโครงสร้าง UI รอไว้ทันที 100%
-        initLocationAndWeather();   // 2. ดึงสภาพอากาศ (มีพิกัดบ้านโป่งสำรอง)
-        initUsersDB();              // 3. ตรวจสอบบัญชีผู้ใช้
-        updateDashboardSkins();     // 4. ล็อกหน้าจอสำหรับคนไม่มีสิทธิ์
-        pollFirebaseData();         // 5. โหลดค่าเซนเซอร์มาแปะทับ
+        generateNodePlaceholders(); 
+        initLocationAndWeather();   
+        initUsersDB();              
+        updateDashboardSkins();     
+        pollFirebaseData();         
         
         setInterval(pollFirebaseData, 3000);
         setInterval(() => { document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
