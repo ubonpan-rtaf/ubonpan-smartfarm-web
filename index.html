@@ -98,7 +98,7 @@
         </div>
 
     </main>
-    <script>
+     <script>
     const FIREBASE_URL = "https://ubonpan-smartfarm-default-rtdb.firebaseio.com/farm.json";
     const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
     
@@ -141,10 +141,10 @@
                         if(container.innerHTML.includes('กำลังเชื่อมต่อ')) container.innerHTML = ''; 
                         
                         let nodes = {};
-                        if(data.temp !== undefined) { nodes['node1'] = data; nodes['node1'].name = data.name || "Main Board"; }
-                        else {
-                            Object.keys(data).forEach(k => { if(k.startsWith('node')) nodes[k] = data[k]; });
-                        }
+                        // ปรับการดึงข้อมูลให้เข้าโฟลเดอร์ตามชื่อ node ตรงๆ ป้องกันเส้นทางทับซ้อน
+                        Object.keys(data).forEach(k => { 
+                            if(k.startsWith('node')) nodes[k] = data[k]; 
+                        });
 
                         Object.keys(nodes).forEach(nodeId => {
                             let nodeData = nodes[nodeId];
@@ -208,11 +208,9 @@
                 });
         }
 
-        // ฟังก์ชันสร้างการ์ด Relay ดึงค่า Config จาก Firebase มาแสดง (ถ้ามี)
         function generateRelayCard(nodeId, type, title, icon, color, placeholder, nodeData) {
             if (hiddenRelays[`${nodeId}-${type}`]) return ''; 
             
-            // ดึงค่า Config จากฐานข้อมูลที่บันทึกไว้
             let conf = nodeData.config || {};
             let mode = conf[`${type}_mode`] || 'auto';
             let logic = conf[`${type}_logic`] || '';
@@ -278,10 +276,10 @@
             }
         }
 
+        // แก้ไขฟังก์ชันเปลี่ยนชื่อ: บันทึกเข้าโฟลเดอร์ node ตรงๆ ไม่แยกเงื่อนไข node1
         function updateNodeName(nodeId, newName) {
             let payload = {}; 
-            if(nodeId === 'node1') payload['name'] = newName; 
-            else payload[`${nodeId}/name`] = newName;
+            payload[`${nodeId}/name`] = newName;
             fetch(FIREBASE_URL, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         }
 
@@ -297,7 +295,7 @@
             fetch(FIREBASE_URL, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         }
 
-        // ฟังก์ชันอ่านค่าจากกล่อง Input ทั้งหมดแล้วส่งเข้า Firebase
+        // แก้ไขฟังก์ชันบันทึก Config: จัดโครงสร้างให้อยู่ภายใต้โฟลเดอร์ของแต่ละ node อย่างถูกต้อง
         function saveNodeConfig(nodeId, btnElement) {
             const types = ['pump', 'fan', 'mist', 'light'];
             let configPayload = {};
@@ -311,7 +309,6 @@
                     configPayload[`${type}_dur`] = document.getElementById(`${nodeId}-${type}-dur`).value;
                     configPayload[`${type}_dayMode`] = document.getElementById(`${nodeId}-${type}-dayMode`).value;
                     
-                    // บันทึกวันทำงาน (จ.-อา.)
                     for(let i=0; i<7; i++) {
                         let dayCb = document.getElementById(`${nodeId}-${type}-day-${i}`);
                         if (dayCb) configPayload[`${type}_day_${i}`] = dayCb.checked;
@@ -320,11 +317,8 @@
             });
 
             let payload = {};
-            // บันทึกลงฐานข้อมูลในโฟลเดอร์ /config ของแต่ละโหนด
-            if (nodeId === 'node1') payload['config'] = configPayload;
-            else payload[`${nodeId}/config`] = configPayload;
+            payload[`${nodeId}/config`] = configPayload;
 
-            // เปลี่ยนข้อความปุ่มเพื่อบอกสถานะ
             let originalText = btnElement.innerText;
             btnElement.innerText = "กำลังบันทึก...";
 
@@ -353,13 +347,11 @@
             }
         }
 
-        // ดึงฟังก์ชัน clearKey ออกมาข้างนอกให้ถูกต้อง
         function clearKey() {
             localStorage.removeItem('gemini_api_key');
             alert("ล้างคีย์ออกจากระบบแล้ว! กรุณากดปุ่มวิเคราะห์เพื่อกรอกคีย์ใหม่ครับ");
         }
 
-        // ฟังก์ชันหลัก AI
         function runGeminiAI() {
             const resBox = document.getElementById('ai-response');
             if (!resBox) {
