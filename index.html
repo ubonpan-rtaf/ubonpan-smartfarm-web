@@ -363,7 +363,8 @@ function runGeminiAI() {
 1. ผลกระทบ: (สภาพอากาศนี้พืชจะรู้สึกอย่างไร)
 2. การจัดการ: (ควรเปิด/ปิด ปั๊มน้ำหรือพัดลมหรือไม่ อย่างไร)`;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // เปลี่ยนมาใช้โมเดล gemini-1.5-flash-latest แทน 
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
     fetch(apiUrl, {
         method: "POST",
