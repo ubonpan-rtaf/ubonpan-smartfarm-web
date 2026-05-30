@@ -303,37 +303,72 @@
         }
 
         function runGeminiAI() {
-            const resBox = document.getElementById('ai-response');
-            resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i> กำลังวิเคราะห์ข้อมูลสภาพอากาศร่วมกับฟาร์ม...</span>';
+    const resBox = document.getElementById('ai-response');
+    if (!resBox) {
+        alert("ไม่พบกล่องแสดงผล ai-response บนหน้าเว็บครับ");
+        return; 
+    }
+    
+    resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i> กำลังวิเคราะห์ข้อมูลสภาพอากาศ...</span>';
 
-            const wTemp = document.getElementById('w-temp').innerText;
-            const wCloud = document.getElementById('w-cloud').innerText;
-            const wPm25 = document.getElementById('w-pm25').innerText;
-            
-            let temps = [], soils = [];
-            document.querySelectorAll('[id^="val-node"][id$="-temp"]').forEach(el => { let v = parseFloat(el.innerText); if(!isNaN(v)) temps.push(v); });
-            document.querySelectorAll('[id^="val-node"][id$="-soil"]').forEach(el => { let v = parseFloat(el.innerText); if(!isNaN(v)) soils.push(v); });
-            
-            let avgTemp = temps.length > 0 ? (temps.reduce((a,b)=>a+b)/temps.length).toFixed(1) : '--';
-            let avgSoil = soils.length > 0 ? (soils.reduce((a,b)=>a+b)/soils.length).toFixed(1) : '--';
+    const wTempEl = document.getElementById('w-temp');
+    const wCloudEl = document.getElementById('w-cloud');
+    const wPm25El = document.getElementById('w-pm25');
+    
+    const wTemp = wTempEl ? wTempEl.innerText : 'N/A';
+    const wCloud = wCloudEl ? wCloudEl.innerText : 'N/A';
+    const wPm25 = wPm25El ? wPm25El.innerText : 'N/A';
+    
+    let temps = [], soils = [];
+    document.querySelectorAll('[id^="val-node"][id$="-temp"]').forEach(el => { 
+        let v = parseFloat(el.innerText); 
+        if(!isNaN(v)) temps.push(v); 
+    });
+    document.querySelectorAll('[id^="val-node"][id$="-soil"]').forEach(el => { 
+        let v = parseFloat(el.innerText); 
+        if(!isNaN(v)) soils.push(v); 
+    });
+    
+    let avgTemp = temps.length > 0 ? (temps.reduce((a,b)=>a+b)/temps.length).toFixed(1) : '--';
+    let avgSoil = soils.length > 0 ? (soils.reduce((a,b)=>a+b)/soils.length).toFixed(1) : '--';
 
-            const promptText = `คุณคือ AI ผู้เชี่ยวชาญด้าน Smart Farm วิเคราะห์สภาพปัจจุบัน: อากาศภายนอก ${wTemp} (${wCloud}), PM2.5: ${wPm25}. ข้อมูลเฉลี่ยภายในฟาร์ม: อุณหภูมิ ${avgTemp}°C, ความชื้นดิน ${avgSoil}%. 
-            โปรดประเมินแนวโน้มสภาพอากาศว่าส่งผลต่อพืชอย่างไร และให้คำแนะนำการจัดการระบบน้ำ/พัดลม สั้นๆ กระชับ ไม่เกิน 3 บรรทัด`;
+    const promptText = `คุณคือ AI ผู้เชี่ยวชาญด้าน Smart Farm วิเคราะห์สภาพปัจจุบัน: อากาศภายนอก ${wTemp} (${wCloud}), PM2.5: ${wPm25}. ข้อมูลเฉลี่ยภายในฟาร์ม: อุณหภูมิ ${avgTemp}°C, ความชื้นดิน ${avgSoil}%. 
+    โปรดประเมินแนวโน้มสภาพอากาศว่าส่งผลต่อพืชอย่างไร และให้คำแนะนำการจัดการระบบน้ำ/พัดลม สั้นๆ กระชับ ไม่เกิน 3 บรรทัด`;
 
-            fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.candidates && data.candidates[0].content.parts[0].text) {
-                    resBox.innerHTML = `<span class="text-white text-xs md:text-sm leading-relaxed">${data.candidates[0].content.parts[0].text}</span>`;
-                } else {
-                    resBox.innerText = "การประมวลผลผิดพลาด (API ไม่ตอบสนอง)";
-                }
-            }).catch(() => { resBox.innerText = "Error: เชื่อมต่อ AI ไม่สำเร็จ"; });
+    if (typeof GEMINI_API_KEY === 'undefined' || !GEMINI_API_KEY) {
+        resBox.innerText = "Error: ตัวแปร API KEY หายไป";
+        alert("ไม่พบ API Key ลองเช็คตัวแปร GEMINI_API_KEY ดูครับ");
+        return;
+    }
+
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+    fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+    })
+    .then(res => {
+        if (!res.ok) {
+            // ถ้าพัง โยน Error ออกไปพร้อมรหัสสถานะ
+            throw new Error(`Code: ${res.status} (${res.statusText})`);
         }
+        return res.json();
+    })
+    .then(data => {
+        if(data.candidates && data.candidates[0].content.parts[0].text) {
+            resBox.innerHTML = `<span class="text-white text-xs md:text-sm leading-relaxed">${data.candidates[0].content.parts[0].text}</span>`;
+        } else {
+            resBox.innerText = "API ไม่ส่งข้อความกลับมา";
+            alert("API ตอบกลับมาแล้ว แต่ไม่มีข้อความครับ");
+        }
+    })
+    .catch(error => { 
+        // โชว์ Error สีแดงบนเว็บ และเด้ง Popup แจ้งเตือนบนมือถือ
+        resBox.innerHTML = `<span class="text-red-500 font-bold">❌ ผิดพลาด: ${error.message}</span>`; 
+        alert("การเชื่อมต่อ AI ล้มเหลว สาเหตุ:\n" + error.message);
+    });
+}
 
         initLocationAndWeather();
         pollFirebaseData();
