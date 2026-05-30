@@ -107,12 +107,7 @@
                     <span class="material-icons-round mr-2 text-sm">auto_awesome</span> ANALYZE NOW
                 </button>
             </div>
-            <div class="mt-4 p-4 bg-gray-800 rounded">
-    <label class="text-white text-sm">ตั้งค่า Gemini API Key:</label>
-    <input type="password" id="key-input" class="w-full mt-1 p-2 text-black rounded" placeholder="กรอก API Key เริ่มต้นด้วย AIza...">
-    <button onclick="saveKey()" class="mt-2 bg-blue-500 text-white px-4 py-1 rounded">บันทึกคีย์</button>
-    <button onclick="clearKey()" class="mt-2 bg-red-500 text-white px-4 py-1 rounded ml-2">ล้างคีย์</button>
-</div>
+            
         </section>
 
         <div id="dynamic-farm-container" class="space-y-8">
@@ -306,99 +301,7 @@
         function saveNodeConfig(nodeId) {
             alert(`บันทึกการตั้งค่าลอจิกของ [โซน ${nodeId}] ขึ้นระบบสำเร็จ!`);
         }
-
-        // ฟังก์ชันสำหรับตั้งค่าและบันทึกคีย์
-function setGeminiKey() {
-    let currentKey = localStorage.getItem('gemini_api_key') || '';
-    let newKey = prompt("กรุณากรอก Gemini API Key เพื่อเปิดระบบ AI ของ UBONPAN STATION:\n(คีย์จะถูกบันทึกไว้ในเครื่องของคุณเท่านั้น ปลอดภัยจากบอท GitHub)", currentKey);
-    
-    if (newKey !== null && newKey.trim() !== "") {
-        localStorage.setItem('gemini_api_key', newKey.trim());
-        alert("บันทึก API Key เรียบร้อยแล้ว! กรุณากดปุ่มวิเคราะห์อีกครั้ง");
-    }
-    function clearKey() {
-    localStorage.removeItem('gemini_api_key');
-    alert("ล้างคีย์ออกจากระบบแล้ว! กรุณากดปุ่มวิเคราะห์เพื่อกรอกคีย์ใหม่ครับ");
-    }
-    
-}
-
-// ฟังก์ชันหลัก
-function runGeminiAI() {
-    const resBox = document.getElementById('ai-response');
-    if (!resBox) {
-        alert("ไม่พบกล่องแสดงผล ai-response บนหน้าเว็บครับ");
-        return; 
-    }
-    
-    // 1. ตรวจสอบว่ามีคีย์ในเครื่องหรือไม่ ถ้าไม่มีให้เด้ง Popup ถามทันที
-    let apiKey = localStorage.getItem('gemini_api_key');
-    if (!apiKey) {
-        setGeminiKey();
-        return; // หยุดการทำงานรอให้ใส่คีย์ก่อน
-    }
-
-    resBox.innerHTML = '<span class="text-[#00f2ff] animate-pulse"><i class="fa-solid fa-circle-notch animate-spin mr-2"></i> ศูนย์ UBONPAN STATION กำลังประมวลผล...</span>';
-
-    const wTempEl = document.getElementById('w-temp');
-    const wCloudEl = document.getElementById('w-cloud');
-    const wPm25El = document.getElementById('w-pm25');
-    
-    const wTemp = wTempEl ? wTempEl.innerText : 'N/A';
-    const wCloud = wCloudEl ? wCloudEl.innerText : 'N/A';
-    const wPm25 = wPm25El ? wPm25El.innerText : 'N/A';
-    
-    let temps = [], soils = [];
-    document.querySelectorAll('[id^="val-node"][id$="-temp"]').forEach(el => { 
-        let v = parseFloat(el.innerText); 
-        if(!isNaN(v)) temps.push(v); 
-    });
-    document.querySelectorAll('[id^="val-node"][id$="-soil"]').forEach(el => { 
-        let v = parseFloat(el.innerText); 
-        if(!isNaN(v)) soils.push(v); 
-    });
-    
-    let avgTemp = temps.length > 0 ? (temps.reduce((a,b)=>a+b)/temps.length).toFixed(1) : '--';
-    let avgSoil = soils.length > 0 ? (soils.reduce((a,b)=>a+b)/soils.length).toFixed(1) : '--';
-
-    // 2. ปรับ Prompt เป็นแบบแบ่งข้อ เพื่อให้อ่านง่ายและชัดเจนบนหน้าเว็บ
-    const promptText = `คุณคือ AI ผู้ช่วยประจำศูนย์ฟาร์มอัจฉริยะ วิเคราะห์สภาพปัจจุบัน: 
-สภาพแวดล้อม: อุณหภูมิ ${wTemp} (${wCloud}), PM2.5: ${wPm25}
-ภายในฟาร์ม: อุณหภูมิเฉลี่ย ${avgTemp}°C, ความชื้นดิน ${avgSoil}%
-โปรดประเมินสถานการณ์โดยพิมพ์ตอบกลับแบบกระชับ เข้าใจง่าย แบ่งเป็น 2 หัวข้อ:
-1. ผลกระทบ: (สภาพอากาศนี้พืชจะรู้สึกอย่างไร)
-2. การจัดการ: (ควรเปิด/ปิด ปั๊มน้ำหรือพัดลมหรือไม่ อย่างไร)`;
-
-    // เปลี่ยนมาใช้โมเดล gemini-1.5-flash-latest แทน 
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-
-    fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-    })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error(`Code: ${res.status} (${res.statusText})`);
-        }
-        return res.json();
-    })
-    .then(data => {
-        if(data.candidates && data.candidates[0].content.parts[0].text) {
-            let rawText = data.candidates[0].content.parts[0].text;
-            // 3. แปลง \n เป็น <br> เพื่อจัดบรรทัดให้สวยงาม
-            let formattedText = rawText.replace(/\n/g, '<br>');
-            resBox.innerHTML = `<span class="text-white text-xs md:text-sm leading-relaxed">${formattedText}</span>`;
-        } else {
-            resBox.innerText = "API ไม่ส่งข้อความกลับมา";
-            alert("API ตอบกลับมาแล้ว แต่ไม่มีข้อความครับ");
-        }
-    })
-    .catch(error => { 
-        resBox.innerHTML = `<span class="text-red-500 font-bold">❌ ผิดพลาด: ${error.message}</span>`; 
-        // เพิ่มคำแนะนำเผื่อกรณีคีย์มีปัญหา
-        alert("การเชื่อมต่อล้มเหลว!\nสาเหตุ: " + error.message + "\n\nหากเกิด Error 400 หรือ 401 อาจเป็นเพราะคีย์ผิดหรือหมดอายุ สามารถลบแคชเบราว์เซอร์แล้วกรอกคีย์ใหม่ได้ครับ");
-    });
+        });
 }
         initLocationAndWeather();
         pollFirebaseData();
