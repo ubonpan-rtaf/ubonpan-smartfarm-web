@@ -192,6 +192,7 @@
         
         let currentUser = sessionStorage.getItem('currentUser'); 
         let hiddenRelays = JSON.parse(localStorage.getItem('hiddenRelays')) || {};
+        let extraDevices = JSON.parse(localStorage.getItem('extraDevices')) || {};
 
         const DEFAULT_USERS = {
             "ณรงค์ชัย": "โจ้04100",
@@ -218,23 +219,60 @@
             }
         }
 
-        // --- ฟังก์ชันเรียกคืนอุปกรณ์ที่ถูกซ่อน ---
+        // --- ฟังก์ชันจัดการอุปกรณ์เสริมและซ่อนการ์ด ---
         function restoreHiddenRelays() {
             if (!currentUser) {
                 showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อนทำรายการนี้");
                 return;
             }
-            if(confirm('ต้องการเรียกคืนการ์ดอุปกรณ์ทั้งหมดที่เคยซ่อนไว้กลับมาแสดงใช่หรือไม่?')) {
+            if(confirm('ต้องการเรียกคืนอุปกรณ์ทั้งหมดที่เคยซ่อนไว้กลับมาแสดงใช่หรือไม่?')) {
                 localStorage.removeItem('hiddenRelays');
                 hiddenRelays = {};
-                pushLog('สั่งเรียกคืนการแสดงผลการ์ดอุปกรณ์ทั้งหมดบนหน้าจอ');
-                generateNodePlaceholders(); // วาด UI ใหม่
-                pollFirebaseData(); // ดึงข้อมูลล่าสุดมาแปะ
+                pushLog('สั่งเรียกคืนการแสดงผลอุปกรณ์พื้นฐานทั้งหมด');
+                generateNodePlaceholders(); 
+                pollFirebaseData(); 
                 showToast("เรียกคืนอุปกรณ์สำเร็จ!");
             }
         }
 
+        function toggleAddMenu(nodeId) {
+            const menu = document.getElementById(`menu-add-${nodeId}`);
+            if(menu) menu.classList.toggle('hidden');
+        }
 
+        function addExtraDevice(nodeId, type, label) {
+            extraDevices[`${nodeId}-${type}`] = true;
+            localStorage.setItem('extraDevices', JSON.stringify(extraDevices));
+            
+            const card = document.getElementById(`card-${nodeId}-${type}`);
+            if(card) {
+                card.style.display = type.startsWith('cam') ? 'flex' : 'block';
+            }
+            
+            toggleAddMenu(nodeId); 
+            pushLog(`เพิ่มโมดูลเสริม [${label}] เข้าสู่โซน [${nodeId}]`);
+            showToast(`เพิ่ม ${label} สำเร็จ!`);
+        }
+
+        function hideExtraDevice(nodeId, type) {
+            if(confirm('ต้องการนำอุปกรณ์เสริมนี้ออกจากหน้าจอใช่หรือไม่?')) {
+                extraDevices[`${nodeId}-${type}`] = false;
+                localStorage.setItem('extraDevices', JSON.stringify(extraDevices));
+                document.getElementById(`card-${nodeId}-${type}`).style.display = 'none';
+                pushLog(`นำอุปกรณ์เสริม [${type}] ออกจากหน้าจอโซน [${nodeId}]`);
+            }
+        }
+
+        function hideRelayCard(nodeId, type) {
+            if(confirm('ต้องการปิดซ่อนอุปกรณ์นี้ออกจากหน้าจอใช่หรือไม่?')) {
+                hiddenRelays[`${nodeId}-${type}`] = true;
+                localStorage.setItem('hiddenRelays', JSON.stringify(hiddenRelays));
+                document.getElementById(`card-${nodeId}-${type}`).style.display = 'none';
+                pushLog(`ซ่อนการ์ดคำสั่งควบคุม [${type}] ของบอร์ด [${nodeId}]`);
+            }
+        }
+
+        // --- ระบบวาดหน้าจอ (UI Generation) ---
         function generateNodePlaceholders() {
             const container = document.getElementById('dynamic-farm-container');
             const targetNodes = ['node1', 'node2']; 
@@ -268,7 +306,7 @@
                     </div>
 
                     <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">settings</span> Dynamic Relay Management</h4>
+                        <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">settings</span> ระบบสั่งการอุปกรณ์ (Relays)</h4>
                         <button onclick="requireAuth(() => saveNodeConfig('${nodeId}', this))" class="bg-white/10 hover:bg-[#00f2ff] hover:text-black text-white text-xs px-3 py-1.5 rounded font-bold transition-colors">SAVE CONFIG</button>
                     </div>
 
@@ -277,26 +315,48 @@
                         ${buildRelayLayout(nodeId, 'fan', 'พัดลม (อุณหภูมิ)', 'air', 'red-400', 'อุณหภูมิ > 35°C')}
                         ${buildRelayLayout(nodeId, 'mist', 'พ่นหมอก (ชื้น)', 'cloud_download', '[#00f2ff]', 'ชื้น < 60%')}
                         ${buildRelayLayout(nodeId, 'light', 'หลอดไฟ (เวลา)', 'lightbulb', 'yellow-400', 'เปิดตามเวลา')}
+                        
+                        ${buildRelayLayout(nodeId, 'extra1', 'สวิตช์สำรอง 1', 'power', 'purple-400', 'กำหนดเอง', true)}
+                        ${buildRelayLayout(nodeId, 'extra2', 'สวิตช์สำรอง 2', 'power', 'purple-400', 'กำหนดเอง', true)}
                     </div>
 
                     <div class="flex justify-between items-center mt-8 mb-4 border-t border-white/5 pt-6">
                         <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">devices_other</span> Smart Devices & Sensors</h4>
                     </div>
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${buildCameraModule(nodeId)}
+                        ${buildCameraModule(nodeId, 1)}
+                        ${buildCameraModule(nodeId, 2)}
+                        ${buildCameraModule(nodeId, 3, true)}
+                        ${buildCameraModule(nodeId, 4, true)}
                         ${buildIRModule(nodeId)}
                         ${buildGasModule(nodeId)}
+                    </div>
+
+                    <div class="mt-8 flex flex-col items-center">
+                        <button id="btn-add-${nodeId}" onclick="requireAuth(() => toggleAddMenu('${nodeId}'))" class="bg-black/50 border border-dashed border-white/20 text-slate-400 hover:text-white hover:border-[#00f2ff] px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-inner">
+                            <span class="material-icons-round text-sm text-[#00f2ff]">add_circle</span> เพิ่มอุปกรณ์ในโซนนี้
+                        </button>
+                        
+                        <div id="menu-add-${nodeId}" class="hidden mt-3 bg-slate-800/95 backdrop-blur p-3 rounded-xl border border-white/10 grid grid-cols-2 gap-2 shadow-xl z-50">
+                            <button onclick="addExtraDevice('${nodeId}', 'cam3', 'กล้องวงจรปิดที่ 3')" class="bg-purple-500/20 text-purple-400 px-3 py-2 rounded-lg text-[10px] hover:bg-purple-500 hover:text-white font-bold flex items-center gap-1 border border-purple-500/30 transition-all"><span class="material-icons-round text-xs">videocam</span> เพิ่มกล้องที่ 3</button>
+                            <button onclick="addExtraDevice('${nodeId}', 'cam4', 'กล้องวงจรปิดที่ 4')" class="bg-purple-500/20 text-purple-400 px-3 py-2 rounded-lg text-[10px] hover:bg-purple-500 hover:text-white font-bold flex items-center gap-1 border border-purple-500/30 transition-all"><span class="material-icons-round text-xs">videocam</span> เพิ่มกล้องที่ 4</button>
+                            <button onclick="addExtraDevice('${nodeId}', 'extra1', 'สวิตช์รีเลย์สำรอง 1')" class="bg-blue-500/20 text-blue-400 px-3 py-2 rounded-lg text-[10px] hover:bg-blue-500 hover:text-white font-bold flex items-center gap-1 border border-blue-500/30 transition-all"><span class="material-icons-round text-xs">power</span> รีเลย์สำรอง 1</button>
+                            <button onclick="addExtraDevice('${nodeId}', 'extra2', 'สวิตช์รีเลย์สำรอง 2')" class="bg-blue-500/20 text-blue-400 px-3 py-2 rounded-lg text-[10px] hover:bg-blue-500 hover:text-white font-bold flex items-center gap-1 border border-blue-500/30 transition-all"><span class="material-icons-round text-xs">power</span> รีเลย์สำรอง 2</button>
+                        </div>
                     </div>
                 </div>`;
                 container.insertAdjacentHTML('beforeend', html);
             });
         }
 
-        function buildRelayLayout(nodeId, type, title, icon, color, placeholder) {
-            let display = hiddenRelays[`${nodeId}-${type}`] ? 'none' : 'block';
+        function buildRelayLayout(nodeId, type, title, icon, color, placeholder, isExtra = false) {
+            let displayState = isExtra ? (extraDevices[`${nodeId}-${type}`] ? 'block' : 'none') : (hiddenRelays[`${nodeId}-${type}`] ? 'none' : 'block');
+            let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${type}')` : `hideRelayCard('${nodeId}', '${type}')`;
+            
             return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative hover:border-white/20 transition-all shadow-md" id="card-${nodeId}-${type}" style="display: ${display};">
-                <button onclick="requireAuth(() => hideRelayCard('${nodeId}', '${type}'))" class="absolute top-2 right-2 text-slate-500 hover:text-red-400"><span class="material-icons-round text-sm">close</span></button>
+            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative hover:border-white/20 transition-all shadow-md" id="card-${nodeId}-${type}" style="display: ${displayState};">
+                <button onclick="requireAuth(() => ${closeAction})" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 z-10"><span class="material-icons-round text-sm">close</span></button>
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-icons-round text-${color}">${icon}</span>
                     <span class="font-bold text-xs text-white">${title}</span>
@@ -318,19 +378,24 @@
             </div>`;
         }
         
-        function buildCameraModule(nodeId) {
+        function buildCameraModule(nodeId, index, isExtra = false) {
+            let typeId = `cam${index}`;
+            let displayState = isExtra ? (extraDevices[`${nodeId}-${typeId}`] ? 'flex' : 'none') : (hiddenRelays[`${nodeId}-${typeId}`] ? 'none' : 'flex');
+            let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${typeId}')` : `hideRelayCard('${nodeId}', '${typeId}')`;
+
             return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex flex-col justify-between" id="cam-card-${nodeId}">
+            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex-col justify-between" id="card-${nodeId}-${typeId}" style="display: ${displayState};">
+                <button onclick="requireAuth(() => ${closeAction})" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 z-10"><span class="material-icons-round text-sm">close</span></button>
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
-                        <span class="material-icons-round text-purple-400">videocam</span><span class="font-bold text-xs text-white">กล้อง (Tapo C200C)</span>
+                        <span class="material-icons-round text-purple-400">videocam</span><span class="font-bold text-xs text-white">กล้องวงจรปิด ${index}</span>
                     </div>
                 </div>
                 
                 <div class="w-full h-28 bg-black/80 rounded-lg flex flex-col items-center justify-center relative border border-dashed border-slate-600 mb-2 overflow-hidden">
-                    <div class="locked-overlay text-red-400" id="cam-lock-${nodeId}">
+                    <div class="locked-overlay text-red-400" id="cam-lock-${nodeId}-${index}">
                         <span class="material-icons-round text-3xl mb-1">lock</span>
-                        <span class="text-[10px] font-bold px-4 leading-relaxed">ดูภาพสดได้เฉพาะผู้มีสิทธิ์<br>กรุณาลงชื่อเข้าใช้</span>
+                        <span class="text-[10px] font-bold px-4 leading-relaxed">กรุณาลงชื่อเข้าใช้<br>เพื่อดูภาพและคุมกล้อง</span>
                     </div>
                     <span class="material-icons-round text-3xl opacity-40 text-slate-500 mb-1">visibility</span>
                     <span class="text-[8px] text-slate-500 font-mono">STREAM LIVE</span>
@@ -338,18 +403,18 @@
                 
                 <div class="grid grid-cols-5 gap-1 mb-2 px-4">
                     <div></div>
-                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_drop_up</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center transition-all" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_drop_up</span></button>
                     <div></div>
-                    <button class="bg-white/5 p-1 rounded hover:bg-green-400 hover:text-black flex justify-center items-center col-span-2" onclick="requireAuth(()=>{})" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-sm">camera_alt</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-green-400 hover:text-black flex justify-center items-center col-span-2 transition-all" onclick="requireAuth(()=>{})" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-sm">camera_alt</span></button>
                     
-                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_left</span></button>
-                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_drop_down</span></button>
-                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_right</span></button>
-                    <button class="bg-white/5 p-1 rounded hover:bg-red-400 hover:text-white flex justify-center items-center col-span-2" onclick="requireAuth(()=>{})" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-sm">file_download</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center transition-all" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_left</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center transition-all" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_drop_down</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center transition-all" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_right</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-red-400 hover:text-white flex justify-center items-center col-span-2 transition-all" onclick="requireAuth(()=>{})" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-sm">file_download</span></button>
                 </div>
                 
-                <div class="flex justify-between items-center bg-black/40 p-1.5 rounded border border-white/5">
-                    <input type="text" placeholder="RTSP URL Config..." class="config-input text-[10px] w-full bg-transparent border-none" disabled>
+                <div class="flex justify-between items-center bg-black/40 p-1.5 rounded border border-white/5 mt-auto">
+                    <input type="text" placeholder="RTSP URL..." class="config-input text-[10px] w-full bg-transparent border-none" disabled>
                 </div>
             </div>`;
         }
@@ -372,7 +437,7 @@
                         <button onclick="requireAuth(() => pushLog('ส่งคำสั่ง IR: ปิดแอร์'))" class="w-full bg-red-500/10 text-red-400 py-1 rounded text-[10px] font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">ปิด</button>
                     </div>
                 </div>
-                <div class="flex gap-1">
+                <div class="flex gap-1 mt-auto">
                     <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>โหมด: COOL</option></select>
                     <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>พัดลม: AUTO</option></select>
                 </div>
@@ -384,7 +449,7 @@
             <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex flex-col justify-between">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-icons-round text-yellow-500">local_fire_department</span>
-                    <span class="font-bold text-xs text-white">เซนเซอร์ควัน & ก๊าซ (MQ-2)</span>
+                    <span class="font-bold text-xs text-white">ควัน & ก๊าซ (MQ-2)</span>
                 </div>
                 <div class="flex flex-col items-center justify-center flex-1 bg-black/40 rounded-lg border border-white/5 py-4">
                     <div class="text-[10px] text-slate-400 uppercase mb-1">ระดับความเข้มข้น</div>
@@ -398,8 +463,7 @@
             </div>`;
         }
 
-        // --- ฟังก์ชันหลักอื่นๆ ---
-
+        // --- ส่วนเชื่อมต่อ API สภาพอากาศและผู้ใช้ ---
         function fetchWeatherData(lat, lon) {
             fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
                 .then(res => res.json())
@@ -421,7 +485,7 @@
         }
 
         function initLocationAndWeather() {
-            const fallbackLat = 13.8167; // บ้านโป่ง ราชบุรี
+            const fallbackLat = 13.8167; // บ้านโป่ง
             const fallbackLon = 99.8833;
 
             if (navigator.geolocation) {
@@ -515,8 +579,10 @@
                 document.getElementById('current-user-name').innerText = currentUser;
 
                 nodes.forEach(n => {
-                    const lock = document.getElementById(`cam-lock-${n}`);
-                    if(lock) lock.classList.add('hidden');
+                    for(let i=1; i<=4; i++) {
+                        const lock = document.getElementById(`cam-lock-${n}-${i}`);
+                        if(lock) lock.classList.add('hidden');
+                    }
                 });
 
                 if (currentUser === "อุบลพันธุ์") {
@@ -532,8 +598,10 @@
                 adminCard.classList.add('hidden');
 
                 nodes.forEach(n => {
-                    const lock = document.getElementById(`cam-lock-${n}`);
-                    if(lock) lock.classList.remove('hidden');
+                    for(let i=1; i<=4; i++) {
+                        const lock = document.getElementById(`cam-lock-${n}-${i}`);
+                        if(lock) lock.classList.remove('hidden');
+                    }
                 });
             }
         }
@@ -564,7 +632,8 @@
                 if (!data) fetch(`${FIREBASE_URL}/users.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_USERS) });
             });
         }
-        
+
+        // --- ระบบฐานข้อมูล Firebase Sync ---
         function pollFirebaseData() {
             fetch(`${FIREBASE_URL}/farm.json`)
                 .then(res => res.json())
@@ -594,7 +663,7 @@
                         if(gasEl) gasEl.innerHTML = `${nodeData.gas != null ? nodeData.gas : 0} <span class="text-[10px] text-slate-500 mb-1">ppm</span>`;
 
                         let conf = nodeData.config || {};
-                        const types = ['pump', 'fan', 'mist', 'light'];
+                        const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
                         
                         types.forEach(t => {
                             const modeSel = document.getElementById(`${nodeId}-${t}-mode`);
@@ -614,6 +683,8 @@
                         updateSwitchUI(`${nodeId}-fan`, nodeData.fanState);
                         updateSwitchUI(`${nodeId}-mist`, nodeData.mistState);
                         updateSwitchUI(`${nodeId}-light`, nodeData.lightState);
+                        updateSwitchUI(`${nodeId}-extra1`, nodeData.extra1State);
+                        updateSwitchUI(`${nodeId}-extra2`, nodeData.extra2State);
                     });
                     
                     if(currentUser === "อุบลพันธุ์") pollSystemLogs();
@@ -644,7 +715,7 @@
         }
 
         function saveNodeConfig(nodeId, btnElement) {
-            const types = ['pump', 'fan', 'mist', 'light'];
+            const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
             let configPayload = {};
             
             types.forEach(type => {
@@ -667,15 +738,6 @@
                     btnElement.innerText = "บันทึกสำเร็จ!";
                     setTimeout(() => { btnElement.innerText = oldText; }, 2000);
                 }).catch(() => { btnElement.innerText = oldText; showToast("เครือข่ายฐานข้อมูลขัดข้อง"); });
-        }
-
-        function hideRelayCard(nodeId, type) {
-            if(confirm('ต้องการลบปุ่มควบคุมนี้ออกจากหน้าจอใช่หรือไม่?')) {
-                hiddenRelays[`${nodeId}-${type}`] = true;
-                localStorage.setItem('hiddenRelays', JSON.stringify(hiddenRelays));
-                document.getElementById(`card-${nodeId}-${type}`).remove();
-                pushLog(`ซ่อนการ์ดคำสั่งควบคุม [${type}] ของบอร์ด [${nodeId}] ออกจากหน้าเว็บ`);
-            }
         }
 
         generateNodePlaceholders(); 
