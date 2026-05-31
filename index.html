@@ -151,7 +151,8 @@
                 </button>
             </div>
         </header>
-         <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-8">
+
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-8">
             <div class="glass p-2.5 rounded-xl text-center border border-white/5"><div class="text-[9px] text-slate-400 uppercase">อุณหภูมิ</div><div class="font-bold text-red-400 text-sm mt-0.5" id="w-temp">--°C</div></div>
             <div class="glass p-2.5 rounded-xl text-center border border-white/5"><div class="text-[9px] text-slate-400 uppercase">รู้สึกเหมือน</div><div class="font-bold text-orange-400 text-sm mt-0.5" id="w-feels">--°C</div></div>
             <div class="glass p-2.5 rounded-xl text-center border border-white/5"><div class="text-[9px] text-slate-400 uppercase">ความชื้น</div><div class="font-bold text-[#00f2ff] text-sm mt-0.5" id="w-hum">--%</div></div>
@@ -167,9 +168,9 @@
                 <span class="material-icons-round text-purple-400 animate-pulse">visibility</span>
                 <h3 class="text-xs font-bold text-purple-400 uppercase tracking-widest">ระบบจัดการสิทธิ์บอร์ด (Board Visibility Manager)</h3>
             </div>
-            <p class="text-[10px] text-slate-400 mb-4">เลือกสวิตช์เพื่อกำหนดว่าบอร์ดใดบ้างที่อนุญาตให้ "ผู้ใช้งานทั่วไป" มองเห็นได้บนหน้าเว็บ</p>
+            <p class="text-[10px] text-slate-400 mb-4">เลือกสวิตช์เพื่อกำหนดว่าบอร์ดใดบ้างที่อนุญาตให้ "ผู้ใช้งานทั่วไปและแขก" มองเห็นได้บนหน้าเว็บ</p>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="visibility-toggles-container">
-                </div>
+            </div>
         </div>
 
         <div id="admin-log-card" class="glass p-6 rounded-2xl border border-red-500/20 shadow-xl mt-4 hidden">
@@ -201,6 +202,7 @@
         let currentUser = sessionStorage.getItem('currentUser'); 
         let hiddenRelays = JSON.parse(localStorage.getItem('hiddenRelays')) || {};
         let extraDevices = JSON.parse(localStorage.getItem('extraDevices')) || {};
+        let globalVisibility = {};
 
         const ALL_NODES = ['node1', 'node2', 'node3', 'node4'];
 
@@ -225,6 +227,32 @@
             }
         }
 
+        // --- ระบบควบคุมปุ่มกล้อง (Momentary Switch) ---
+        function triggerCamAction(btn, actionName) {
+            requireAuth(() => {
+                btn.classList.add('bg-[#00f2ff]', 'text-black');
+                btn.classList.remove('bg-white/5');
+                
+                let card = btn.closest('.cam-container');
+                let led = card ? card.querySelector('.cam-led') : null;
+                if(led) {
+                    led.classList.remove('bg-slate-500');
+                    led.classList.add('bg-green-400', 'shadow-[0_0_8px_#4ade80]');
+                }
+
+                setTimeout(() => {
+                    btn.classList.remove('bg-[#00f2ff]', 'text-black');
+                    btn.classList.add('bg-white/5');
+                    if(led) {
+                        led.classList.remove('bg-green-400', 'shadow-[0_0_8px_#4ade80]');
+                        led.classList.add('bg-slate-500');
+                    }
+                }, 300);
+
+                pushLog(`ส่งคำสั่งกล้องวงจรปิด: [${actionName}]`);
+            });
+        }
+
         function restoreHiddenRelays() {
             if (!currentUser) {
                 showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อนทำรายการนี้"); return;
@@ -233,7 +261,7 @@
                 localStorage.removeItem('hiddenRelays');
                 hiddenRelays = {};
                 pushLog('สั่งเรียกคืนการแสดงผลอุปกรณ์พื้นฐานทั้งหมด');
-                generateNodePlaceholders(); 
+                generateNodePlaceholders(globalVisibility); 
                 pollFirebaseData(); 
                 updateDashboardSkins(); 
                 showToast("เรียกคืนอุปกรณ์สำเร็จ!");
@@ -274,19 +302,27 @@
             }
         }
 
-        // --- ระบบสร้างการ์ดบอร์ด ---
-        function generateNodePlaceholders() {
+        // --- ระบบสร้างการ์ดบอร์ด (Hard Removal ถ้าไม่มีสิทธิ์) ---
+        function generateNodePlaceholders(visData) {
             const container = document.getElementById('dynamic-farm-container');
             container.innerHTML = '';
 
             ALL_NODES.forEach(nodeId => {
                 let defaultName = nodeId === 'node1' ? 'บ้านเรนะ' : (nodeId === 'node2' ? 'สำนักงาน' : `ลูกข่าย ${nodeId.replace('node','')}`);
                 
-                // เริ่มต้นให้เห็นแค่ Node 1, 2 ก่อน (สำหรับแขก) เดี๋ยว Firebase จะมาเปิด-ปิดเพิ่มให้ทีหลัง
-                let initialDisplay = (nodeId === 'node1' || nodeId === 'node2') ? 'block' : 'none';
+                let isVisible = false;
+                if (currentUser === 'อุบลพันธุ์') {
+                    isVisible = true; // แอดมินเห็นแบบ Full Access เสมอ
+                } else {
+                    // แขกและผู้ใช้ทั่วไป ตรวจสอบค่า Boolean ให้เป๊ะ
+                    isVisible = (visData && (visData[nodeId] === true || visData[nodeId] === "true")) ? true : false;
+                }
+                
+                // ถ้ายกเลิกสิทธิ์แล้ว "ไม่ต้องสร้าง HTML ส่วนนี้เลย" หายวับ 100% ป้องกันซ่อนแล้วพลาด
+                if (!isVisible) return; 
 
                 let html = `
-                <div class="glass p-6 md:p-8 rounded-2xl neon-border" id="zone-${nodeId}" style="display: ${initialDisplay};">
+                <div class="glass p-6 md:p-8 rounded-2xl neon-border" id="zone-${nodeId}">
                     <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                         <div class="flex items-center gap-3">
                             <span class="material-icons-round text-[#00f2ff] text-2xl">router</span>
@@ -355,7 +391,7 @@
                 container.insertAdjacentHTML('beforeend', html);
             });
             
-            buildAdminVisibilityToggles(); // สร้างสวิตช์ในการ์ดแอดมินรอไว้
+            if(currentUser === 'อุบลพันธุ์') buildAdminVisibilityToggles(); 
         }
 
         function buildRelayLayout(nodeId, type, title, icon, color, placeholder, isExtra = false) {
@@ -392,11 +428,13 @@
             let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${typeId}')` : `hideRelayCard('${nodeId}', '${typeId}')`;
 
             return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex-col justify-between" id="card-${nodeId}-${typeId}" style="display: ${displayState};">
+            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex-col justify-between cam-container" id="card-${nodeId}-${typeId}" style="display: ${displayState};">
                 <button onclick="requireAuth(() => ${closeAction})" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 z-10"><span class="material-icons-round text-sm">close</span></button>
                 <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="material-icons-round text-purple-400">videocam</span><span class="font-bold text-xs text-white">กล้องวงจรปิด ${index}</span>
+                    <div class="flex items-center gap-2 flex-1">
+                        <span class="material-icons-round text-purple-400">videocam</span>
+                        <span class="font-bold text-xs text-white">กล้องวงจรปิด ${index}</span>
+                        <span class="cam-led w-2 h-2 rounded-full bg-slate-500 ml-auto transition-all duration-300"></span>
                     </div>
                 </div>
                 
@@ -409,16 +447,16 @@
                     <span class="text-[8px] text-slate-500 font-mono">STREAM LIVE</span>
                 </div>
                 
-                 <div class="grid grid-cols-5 gap-1.5 mb-3 px-2">
+                <div class="grid grid-cols-5 gap-1.5 mb-3 px-2">
                     <div></div>
-                    <button class="bg-white/5 p-1.5 rounded-lg active:scale-95 active:bg-[#00f2ff] active:text-black flex justify-center items-center transition-all duration-75" onclick="requireAuth(()=>{})"><span class="material-icons-round text-base">arrow_drop_up</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'เงยกล้องขึ้น')"><span class="material-icons-round text-base">arrow_drop_up</span></button>
                     <div></div>
-                    <button class="bg-white/5 p-1.5 rounded-lg active:scale-95 active:bg-green-400 active:text-black flex justify-center items-center col-span-2 transition-all duration-75" onclick="requireAuth(()=>{})" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-base">camera_alt</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ถ่ายภาพนิ่ง')" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-base">camera_alt</span></button>
                     
-                    <button class="bg-white/5 p-1.5 rounded-lg active:scale-95 active:bg-[#00f2ff] active:text-black flex justify-center items-center transition-all duration-75" onclick="requireAuth(()=>{})"><span class="material-icons-round text-base">arrow_left</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg active:scale-95 active:bg-[#00f2ff] active:text-black flex justify-center items-center transition-all duration-75" onclick="requireAuth(()=>{})"><span class="material-icons-round text-base">arrow_drop_down</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg active:scale-95 active:bg-[#00f2ff] active:text-black flex justify-center items-center transition-all duration-75" onclick="requireAuth(()=>{})"><span class="material-icons-round text-base">arrow_right</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg active:scale-95 active:bg-red-400 active:text-white flex justify-center items-center col-span-2 transition-all duration-75" onclick="requireAuth(()=>{})" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-base">file_download</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปซ้าย')"><span class="material-icons-round text-base">arrow_left</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'ก้มกล้องลง')"><span class="material-icons-round text-base">arrow_drop_down</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปขวา')"><span class="material-icons-round text-base">arrow_right</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ดาวน์โหลดคลิป')" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-base">file_download</span></button>
                 </div>
                 
                 <div class="flex justify-between items-center bg-black/40 p-1.5 rounded border border-white/5 mt-auto">
@@ -426,7 +464,8 @@
                 </div>
             </div>`;
         }
-function buildIRModule(nodeId) {
+
+        function buildIRModule(nodeId) {
             return `
             <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative flex flex-col justify-between shadow-lg">
                 <div class="flex items-center gap-2 mb-3"><span class="material-icons-round text-teal-400">ac_unit</span><span class="font-bold text-xs text-white">ควบคุมแอร์ (IR Node)</span></div>
@@ -469,12 +508,12 @@ function buildIRModule(nodeId) {
                 </div>
             </div>`;
         }
-
-        function buildAdminVisibilityToggles() {
+function buildAdminVisibilityToggles() {
             const container = document.getElementById('visibility-toggles-container');
             if(!container) return;
             container.innerHTML = '';
             ALL_NODES.forEach(n => {
+                let isChecked = (globalVisibility[n] === true || globalVisibility[n] === "true") ? "checked" : "";
                 container.insertAdjacentHTML('beforeend', `
                 <div class="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5 shadow-md">
                     <div>
@@ -482,7 +521,7 @@ function buildIRModule(nodeId) {
                         <div class="text-[9px] text-slate-400" id="vis-label-${n}">โหลดข้อมูล...</div>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="vis-chk-${n}" onchange="toggleBoardVisibility('${n}', this.checked)" class="sr-only peer">
+                        <input type="checkbox" id="vis-chk-${n}" onchange="toggleBoardVisibility('${n}', this.checked)" class="sr-only peer" ${isChecked}>
                         <div class="w-8 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-purple-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all"></div>
                     </label>
                 </div>
@@ -491,12 +530,22 @@ function buildIRModule(nodeId) {
         }
 
         function toggleBoardVisibility(nodeId, isVisible) {
+            globalVisibility[nodeId] = isVisible; // อัปเดตฝั่งตัวเองทันที
             let payload = {}; payload[nodeId] = isVisible;
-            fetch(`${FIREBASE_URL}/board_visibility.json`, { method: "PATCH", body: JSON.stringify(payload) })
+            fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`, { method: "PATCH", body: JSON.stringify(payload) })
                 .then(() => {
                     let statusText = isVisible ? 'เปิดให้ทุกคนเห็น' : 'ซ่อนเป็นส่วนตัว';
                     pushLog(`เปลี่ยนสิทธิ์การมองเห็นบอร์ด [${nodeId}] เป็น: ${statusText}`);
                     showToast(`อัปเดตสิทธิ์ ${nodeId} แล้ว!`);
+                    
+                    const badgeEl = document.getElementById(`vis-badge-${nodeId}`);
+                    if(badgeEl) {
+                        if (isVisible) {
+                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
+                        } else {
+                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
+                        }
+                    }
                 });
         }
 
@@ -553,7 +602,7 @@ function buildIRModule(nodeId) {
             const pass = document.getElementById('login-pass').value.trim();
             if(!user || !pass) { showToast("กรุณากรอกข้อมูลให้ครบถ้วน"); return; }
 
-            fetch(`${FIREBASE_URL}/users/${user}.json`)
+            fetch(`${FIREBASE_URL}/users/${user}.json?_=${Date.now()}`)
                 .then(res => res.json())
                 .then(savedPassword => {
                     if (savedPassword === pass) {
@@ -561,7 +610,8 @@ function buildIRModule(nodeId) {
                         currentUser = user;
                         closeLogin();
                         updateDashboardSkins();
-                        pollFirebaseData(); // โหลดใหม่เพื่ออัปเดตการแสดงผลบอร์ดตามสิทธิ์
+                        generateNodePlaceholders(globalVisibility); // สร้างโครงสร้าง HTML ตามสิทธิ์ใหม่ทันที
+                        pollFirebaseData();
                         pushLog("เข้าสู่ระบบสำนักงานสำเร็จ");
                         showToast(`สิทธิ์การเข้าใช้งานโมดูลของ '${user}' เปิดทำงานแล้ว`);
                     } else {
@@ -569,16 +619,17 @@ function buildIRModule(nodeId) {
                     }
                 }).catch(() => { showToast("เกิดข้อผิดพลาดในการเชื่อมต่อสิทธิ์ความปลอดภัย"); });
         }
+
         function doLogout() {
             pushLog("ลงชื่อออกจากระบบควบคุม");
             sessionStorage.removeItem('currentUser');
             currentUser = null;
             updateDashboardSkins();
-            pollFirebaseData(); // รีโหลดสิทธิ์เพื่อให้กลับไปมองเห็นแค่ค่าพื้นฐาน (Node 1, 2)
+            generateNodePlaceholders(globalVisibility); // รื้อโครงสร้าง HTML ทิ้งทันทีสำหรับบอร์ดที่ถูกซ่อน
+            pollFirebaseData();
             showToast("ลงชื่อออกจากระบบความปลอดภัยแล้ว");
         }
-
-        function pushLog(actionText) {
+       function pushLog(actionText) {
             if (!currentUser) return;
             const timeStamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
             const payload = { timestamp: timeStamp, user: currentUser, action: actionText };
@@ -613,7 +664,7 @@ function buildIRModule(nodeId) {
                 ALL_NODES.forEach(n => {
                     for(let i=1; i<=4; i++) {
                         const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        if(lock) lock.style.display = 'none'; // ปลดล็อคกล้อง
+                        if(lock) lock.style.display = 'none'; 
                     }
                 });
 
@@ -635,7 +686,7 @@ function buildIRModule(nodeId) {
                 ALL_NODES.forEach(n => {
                     for(let i=1; i<=4; i++) {
                         const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        if(lock) lock.style.display = 'flex'; // ล็อคกล้อง
+                        if(lock) lock.style.display = 'flex'; 
                     }
                 });
             }
@@ -643,7 +694,7 @@ function buildIRModule(nodeId) {
 
         function pollSystemLogs() {
             if(currentUser !== "อุบลพันธุ์") return;
-            fetch(`${FIREBASE_URL}/logs.json`)
+            fetch(`${FIREBASE_URL}/logs.json?_=${Date.now()}`)
                 .then(res => res.json())
                 .then(logData => {
                     const tbody = document.getElementById('log-table-body');
@@ -663,118 +714,109 @@ function buildIRModule(nodeId) {
         }
 
         function initUsersDB() {
-            fetch(`${FIREBASE_URL}/users.json`).then(res => res.json()).then(data => {
+            fetch(`${FIREBASE_URL}/users.json?_=${Date.now()}`).then(res => res.json()).then(data => {
                 if (!data) fetch(`${FIREBASE_URL}/users.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_USERS) });
-            });
-            // ตรวจสอบและสร้าง DB สิทธิ์เริ่มต้นถ้ายังไม่มี
-            fetch(`${FIREBASE_URL}/board_visibility.json`).then(res => res.json()).then(data => {
-                if (!data) {
-                    let defVis = { node1: true, node2: true, node3: false, node4: false };
-                    fetch(`${FIREBASE_URL}/board_visibility.json`, { method: 'PUT', body: JSON.stringify(defVis) });
-                }
             });
         }
 
         function pollFirebaseData() {
-            // ดึงสิทธิ์การมองเห็นบอร์ดก่อน
-            fetch(`${FIREBASE_URL}/board_visibility.json`).then(res => res.json()).then(visData => {
+            // ?_=${Date.now()} ป้องกันการจำ Cache จากเบราว์เซอร์
+            fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
                 if (!visData) visData = { node1: true, node2: true, node3: false, node4: false };
                 
-                // นำสิทธิ์ไปซ่อนหรือเปิดบอร์ด
+                // ตรวจสอบว่าแอดมินเพิ่งกดยกเลิกสิทธิ์ใครแบบสดๆ หรือไม่
+                let visibilityChanged = false;
                 ALL_NODES.forEach(n => {
-                    const zoneEl = document.getElementById(`zone-${n}`);
+                    let oldVal = (globalVisibility[n] === true || globalVisibility[n] === "true");
+                    let newVal = (visData[n] === true || visData[n] === "true");
+                    if (oldVal !== newVal) visibilityChanged = true;
+                });
+
+                globalVisibility = visData;
+                
+                // ถ้ายกเลิก/เพิ่มสิทธิ์ ให้วาดหน้าจอใหม่ทันที
+                if (visibilityChanged) {
+                    generateNodePlaceholders(globalVisibility);
+                }
+
+                ALL_NODES.forEach(n => {
                     const badgeEl = document.getElementById(`vis-badge-${n}`);
+                    const chk = document.getElementById(`vis-chk-${n}`);
                     
-                    if(zoneEl) {
-                        if (!currentUser) {
-                            // แขก (ผู้ใช้ทั่วไปยังไม่ล็อกอิน) -> เห็นแค่ 1, 2 ตามโครงสร้างพื้นฐาน
-                            zoneEl.style.display = (n === 'node1' || n === 'node2') ? 'block' : 'none';
-                        } else if (currentUser === 'อุบลพันธุ์') {
-                            // แอดมิน -> เห็นทุกอย่าง 100%
-                            zoneEl.style.display = 'block';
-                            // อัปเดตสวิตช์ในการ์ดแอดมิน
-                            const chk = document.getElementById(`vis-chk-${n}`);
-                            if(chk && document.activeElement !== chk) chk.checked = visData[n];
+                    if(badgeEl && currentUser === 'อุบลพันธุ์') {
+                        badgeEl.style.display = 'inline-flex';
+                        if (visData[n] === true || visData[n] === "true") {
+                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
                         } else {
-                            // ผู้ใช้งานที่ล็อกอินแล้ว -> เห็นตามที่แอดมินตั้งค่าไว้ใน Firebase
-                            zoneEl.style.display = visData[n] ? 'block' : 'none';
+                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
                         }
                     }
 
-                    // แสดง Badge ใหัแอดมินเห็นสถานะการซ่อน/เปิดของแต่ละบอร์ด
-                    if(badgeEl) {
-                        if (currentUser === 'อุบลพันธุ์') {
-                            badgeEl.style.display = 'inline-flex';
-                            if (visData[n]) {
-                                badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
-                            } else {
-                                badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
-                            }
-                        } else {
-                            badgeEl.style.display = 'none';
-                        }
+                    // อัปเดตสวิตช์ในการ์ดแอดมิน
+                    if(chk && document.activeElement !== chk && currentUser === 'อุบลพันธุ์') {
+                        chk.checked = (visData[n] === true || visData[n] === "true");
                     }
                 });
 
-                // ดึงข้อมูลตัวเลขเซนเซอร์และค่าต่างๆ มาแสดงต่อ
-                fetch(`${FIREBASE_URL}/farm.json`).then(res => res.json()).then(data => {
-                    if (!data) return;
-                    ALL_NODES.forEach(nodeId => {
-                        let nodeData = data[nodeId] || {};
-                        
-                        const statusEl = document.getElementById(`status-${nodeId}`);
-                        if(statusEl) statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span> <span class="text-green-400 font-bold">Online</span>`;
+                // ไปดึงข้อมูลเซนเซอร์ต่อ
+                return fetch(`${FIREBASE_URL}/farm.json?_=${Date.now()}`);
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data) return;
+                ALL_NODES.forEach(nodeId => {
+                    let nodeData = data[nodeId] || {};
+                    
+                    const statusEl = document.getElementById(`status-${nodeId}`);
+                    if(statusEl) statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span> <span class="text-green-400 font-bold">Online</span>`;
 
-                        const nameInput = document.getElementById(`input-name-${nodeId}`);
-                        if(nameInput && document.activeElement !== nameInput && nodeData.name) {
-                            nameInput.value = nodeData.name;
-                        }
-                        
-                        // อัปเดตชื่อในการ์ดจัดการสิทธิ์ของแอดมินให้ตรงกับที่เปลี่ยน
-                        const visLabel = document.getElementById(`vis-label-${nodeId}`);
-                        if(visLabel && nodeData.name) visLabel.innerText = nodeData.name;
+                    const nameInput = document.getElementById(`input-name-${nodeId}`);
+                    if(nameInput && document.activeElement !== nameInput && nodeData.name) {
+                        nameInput.value = nodeData.name;
+                    }
+                    
+                    const visLabel = document.getElementById(`vis-label-${nodeId}`);
+                    if(visLabel && nodeData.name) visLabel.innerText = nodeData.name;
 
-                        const tEl = document.getElementById(`val-${nodeId}-temp`);
-                        const hEl = document.getElementById(`val-${nodeId}-hum`);
-                        const sEl = document.getElementById(`val-${nodeId}-soil`);
-                        const gasEl = document.getElementById(`val-${nodeId}-gas`);
-                        
-                        if(tEl) tEl.innerText = nodeData.temp != null ? `${nodeData.temp.toFixed(1)}°C` : '--°C';
-                        if(hEl) hEl.innerText = nodeData.hum != null ? `${nodeData.hum.toFixed(1)}%` : '--%';
+                    const tEl = document.getElementById(`val-${nodeId}-temp`);
+                    const hEl = document.getElementById(`val-${nodeId}-hum`);
+                    const sEl = document.getElementById(`val-${nodeId}-soil`);
+                    const gasEl = document.getElementById(`val-${nodeId}-gas`);
+                    
+                    if(tEl) tEl.innerText = nodeData.temp != null ? `${nodeData.temp.toFixed(1)}°C` : '--°C';
+                    if(hEl) hEl.innerText = nodeData.hum != null ? `${nodeData.hum.toFixed(1)}%` : '--%';
                         if(sEl) sEl.innerText = nodeData.soil != null ? `${nodeData.soil}%` : '--%';
-                        if(gasEl) gasEl.innerHTML = `${nodeData.gas != null ? nodeData.gas : 0} <span class="text-[10px] text-slate-500 mb-1">ppm</span>`;
+                    if(gasEl) gasEl.innerHTML = `${nodeData.gas != null ? nodeData.gas : 0} <span class="text-[10px] text-slate-500 mb-1">ppm</span>`;
 
-                        let conf = nodeData.config || {};
-                        const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
-                        
-                        types.forEach(t => {
-                            const modeSel = document.getElementById(`${nodeId}-${t}-mode`);
-                            const logicInp = document.getElementById(`${nodeId}-${t}-logic`);
-                            const tStart = document.getElementById(`${nodeId}-${t}-timeStart`);
-                            const tEnd = document.getElementById(`${nodeId}-${t}-timeEnd`);
-                            const durInp = document.getElementById(`${nodeId}-${t}-dur`);
-
-                            if(modeSel && document.activeElement !== modeSel && conf[`${t}_mode`]) modeSel.value = conf[`${t}_mode`];
-                            if(logicInp && document.activeElement !== logicInp && conf[`${t}_logic`]) logicInp.value = conf[`${t}_logic`];
-                            if(tStart && document.activeElement !== tStart && conf[`${t}_timeStart`]) tStart.value = conf[`${t}_timeStart`];
-                            if(tEnd && document.activeElement !== tEnd && conf[`${t}_timeEnd`]) tEnd.value = conf[`${t}_timeEnd`];
-                            if(durInp && document.activeElement !== durInp && conf[`${t}_dur`]) durInp.value = conf[`${t}_dur`];
-                        });
-
-                        updateSwitchUI(`${nodeId}-pump`, nodeData.pumpState);
-                        updateSwitchUI(`${nodeId}-fan`, nodeData.fanState);
-                        updateSwitchUI(`${nodeId}-mist`, nodeData.mistState);
-                        updateSwitchUI(`${nodeId}-light`, nodeData.lightState);
-                        updateSwitchUI(`${nodeId}-extra1`, nodeData.extra1State);
-                        updateSwitchUI(`${nodeId}-extra2`, nodeData.extra2State);
-                    });
+                    let conf = nodeData.config || {};
+                    const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
                     
-                    if(currentUser === "อุบลพันธุ์") pollSystemLogs();
+                    types.forEach(t => {
+                        const modeSel = document.getElementById(`${nodeId}-${t}-mode`);
+                        const logicInp = document.getElementById(`${nodeId}-${t}-logic`);
+                        const tStart = document.getElementById(`${nodeId}-${t}-timeStart`);
+                        const tEnd = document.getElementById(`${nodeId}-${t}-timeEnd`);
+                        const durInp = document.getElementById(`${nodeId}-${t}-dur`);
+
+                        if(modeSel && document.activeElement !== modeSel && conf[`${t}_mode`]) modeSel.value = conf[`${t}_mode`];
+                        if(logicInp && document.activeElement !== logicInp && conf[`${t}_logic`]) logicInp.value = conf[`${t}_logic`];
+                        if(tStart && document.activeElement !== tStart && conf[`${t}_timeStart`]) tStart.value = conf[`${t}_timeStart`];
+                        if(tEnd && document.activeElement !== tEnd && conf[`${t}_timeEnd`]) tEnd.value = conf[`${t}_timeEnd`];
+                        if(durInp && document.activeElement !== durInp && conf[`${t}_dur`]) durInp.value = conf[`${t}_dur`];
+                    });
+
+                    updateSwitchUI(`${nodeId}-pump`, nodeData.pumpState);
+                    updateSwitchUI(`${nodeId}-fan`, nodeData.fanState);
+                    updateSwitchUI(`${nodeId}-mist`, nodeData.mistState);
+                    updateSwitchUI(`${nodeId}-light`, nodeData.lightState);
+                    updateSwitchUI(`${nodeId}-extra1`, nodeData.extra1State);
+                    updateSwitchUI(`${nodeId}-extra2`, nodeData.extra2State);
                 });
+                
+                if(currentUser === "อุบลพันธุ์") pollSystemLogs();
             }).catch(e => console.log("Firebase Sync Loading..."));
         }
-
-        function updateNodeName(nodeId, newName) {
+       function updateNodeName(nodeId, newName) {
             let payload = {}; payload[`${nodeId}/name`] = newName;
             fetch(`${FIREBASE_URL}/farm.json`, { method: "PATCH", body: JSON.stringify(payload) })
                 .then(() => pushLog(`เปลี่ยนชื่อระบุโซนอุปกรณ์ ${nodeId} เป็น "${newName}"`));
@@ -796,6 +838,7 @@ function buildIRModule(nodeId) {
                     pushLog(`สั่งการแมนนวลรีเลย์: [${type}] ที่บอร์ด [${nodeId}] -> ${text}`);
                 });
         }
+
         function saveNodeConfig(nodeId, btnElement) {
             const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
             let configPayload = {};
@@ -822,14 +865,25 @@ function buildIRModule(nodeId) {
                 }).catch(() => { btnElement.innerText = oldText; showToast("เครือข่ายฐานข้อมูลขัดข้อง"); });
         }
 
-        generateNodePlaceholders(); 
-        initLocationAndWeather();   
-        initUsersDB();              
-        updateDashboardSkins();     
-        pollFirebaseData();         
-        
-        setInterval(pollFirebaseData, 3000);
-        setInterval(() => { document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
+        // ระบบ Boot เริ่มต้น
+        function bootSystem() {
+            fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
+                globalVisibility = visData || { node1: true, node2: true, node3: false, node4: false };
+                generateNodePlaceholders(globalVisibility);
+                initLocationAndWeather();   
+                initUsersDB();              
+                updateDashboardSkins();     
+                pollFirebaseData();         
+                setInterval(pollFirebaseData, 3000);
+                setInterval(() => { document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
+            }).catch(() => {
+                globalVisibility = { node1: true, node2: true, node3: false, node4: false };
+                generateNodePlaceholders(globalVisibility);
+                initLocationAndWeather();
+            });
+        }
+
+        bootSystem();
     </script>
 </body>
-</html>
+</html> 
