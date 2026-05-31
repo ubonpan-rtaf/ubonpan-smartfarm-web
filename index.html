@@ -55,13 +55,11 @@
         }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
         
-        /* สไตล์สำหรับกล่องบังกล้อง */
         .locked-overlay { 
             position: absolute; inset: 0; background: rgba(7, 11, 22, 0.85); 
             backdrop-filter: blur(6px); display: flex; flex-direction: column; 
             justify-content: center; align-items: center; z-index: 20; border-radius: 0.75rem; 
             text-align: center; border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: opacity 0.3s ease;
         }
     </style>
 </head>
@@ -164,12 +162,21 @@
 
         <div id="dynamic-farm-container" class="space-y-8 flex-1"></div>
 
-        <div id="admin-log-card" class="glass p-6 rounded-2xl border border-red-500/20 shadow-xl mt-8 hidden">
+        <div id="admin-visibility-card" class="glass p-6 rounded-2xl border border-purple-500/30 shadow-xl mt-8 hidden">
             <div class="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
-                <span class="material-icons-round text-red-400 animate-pulse">admin_panel_settings</span>
+                <span class="material-icons-round text-purple-400 animate-pulse">visibility</span>
+                <h3 class="text-xs font-bold text-purple-400 uppercase tracking-widest">ระบบจัดการสิทธิ์บอร์ด (Board Visibility Manager)</h3>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-4">เลือกสวิตช์เพื่อกำหนดว่าบอร์ดใดบ้างที่อนุญาตให้ "ผู้ใช้งานทั่วไป" มองเห็นได้บนหน้าเว็บ</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="visibility-toggles-container">
+                </div>
+        </div>
+
+        <div id="admin-log-card" class="glass p-6 rounded-2xl border border-red-500/20 shadow-xl mt-4 hidden">
+            <div class="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
+                <span class="material-icons-round text-red-400">admin_panel_settings</span>
                 <h3 class="text-xs font-bold text-red-400 uppercase tracking-widest">ระบบตรวจสอบผู้ดูแลระบบ (System Activity Logs)</h3>
             </div>
-            
             <div class="overflow-x-auto max-h-64 overflow-y-auto rounded-lg bg-black/30 border border-white/5">
                 <table class="w-full text-left text-[11px] border-collapse">
                     <thead>
@@ -195,6 +202,8 @@
         let hiddenRelays = JSON.parse(localStorage.getItem('hiddenRelays')) || {};
         let extraDevices = JSON.parse(localStorage.getItem('extraDevices')) || {};
 
+        const ALL_NODES = ['node1', 'node2', 'node3', 'node4'];
+
         const DEFAULT_USERS = {
             "ณรงค์ชัย": "โจ้04100",
             "ชญาดา": "แป้ง04200",
@@ -204,10 +213,7 @@
         };
 
         function checkFocus(el) {
-            if (!currentUser) {
-                el.blur(); 
-                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานเพื่อตั้งค่า");
-            }
+            if (!currentUser) { el.blur(); showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานเพื่อตั้งค่า"); }
         }
 
         function checkToggle(el, nodeId, type) {
@@ -221,8 +227,7 @@
 
         function restoreHiddenRelays() {
             if (!currentUser) {
-                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อนทำรายการนี้");
-                return;
+                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อนทำรายการนี้"); return;
             }
             if(confirm('ต้องการเรียกคืนอุปกรณ์ทั้งหมดที่เคยซ่อนไว้กลับมาแสดงใช่หรือไม่?')) {
                 localStorage.removeItem('hiddenRelays');
@@ -230,35 +235,25 @@
                 pushLog('สั่งเรียกคืนการแสดงผลอุปกรณ์พื้นฐานทั้งหมด');
                 generateNodePlaceholders(); 
                 pollFirebaseData(); 
-                updateDashboardSkins(); // อัปเดตการแสดงผล Lock กล้องใหม่ด้วย
+                updateDashboardSkins(); 
                 showToast("เรียกคืนอุปกรณ์สำเร็จ!");
             }
         }
 
         function toggleAddMenu(nodeId) {
             const menu = document.getElementById(`menu-add-${nodeId}`);
-            if(menu) {
-                if (menu.style.display === 'none' || menu.style.display === '') {
-                    menu.style.display = 'grid';
-                } else {
-                    menu.style.display = 'none';
-                }
-            }
+            if(menu) { menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'grid' : 'none'; }
         }
 
         function addExtraDevice(nodeId, type, label) {
             extraDevices[`${nodeId}-${type}`] = true;
             localStorage.setItem('extraDevices', JSON.stringify(extraDevices));
-            
             const card = document.getElementById(`card-${nodeId}-${type}`);
-            if(card) {
-                card.style.display = type.startsWith('cam') ? 'flex' : 'block';
-            }
-            
+            if(card) card.style.display = type.startsWith('cam') ? 'flex' : 'block';
             toggleAddMenu(nodeId); 
             pushLog(`เพิ่มโมดูลเสริม [${label}] เข้าสู่โซน [${nodeId}]`);
             showToast(`เพิ่ม ${label} สำเร็จ!`);
-            updateDashboardSkins(); // อัปเดตจอถ้ามีการเพิ่มกล้องเข้ามาใหม่
+            updateDashboardSkins(); 
         }
 
         function hideExtraDevice(nodeId, type) {
@@ -279,19 +274,24 @@
             }
         }
 
+        // --- ระบบสร้างการ์ดบอร์ด ---
         function generateNodePlaceholders() {
             const container = document.getElementById('dynamic-farm-container');
-            const targetNodes = ['node1', 'node2']; 
             container.innerHTML = '';
 
-            targetNodes.forEach(nodeId => {
-                let defaultName = nodeId === 'node1' ? 'บ้านเรนะ' : `ลูกข่าย ${nodeId.replace('node','')}`;
+            ALL_NODES.forEach(nodeId => {
+                let defaultName = nodeId === 'node1' ? 'บ้านเรนะ' : (nodeId === 'node2' ? 'สำนักงาน' : `ลูกข่าย ${nodeId.replace('node','')}`);
+                
+                // เริ่มต้นให้เห็นแค่ Node 1, 2 ก่อน (สำหรับแขก) เดี๋ยว Firebase จะมาเปิด-ปิดเพิ่มให้ทีหลัง
+                let initialDisplay = (nodeId === 'node1' || nodeId === 'node2') ? 'block' : 'none';
+
                 let html = `
-                <div class="glass p-6 md:p-8 rounded-2xl neon-border" id="zone-${nodeId}">
+                <div class="glass p-6 md:p-8 rounded-2xl neon-border" id="zone-${nodeId}" style="display: ${initialDisplay};">
                     <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
                         <div class="flex items-center gap-3">
                             <span class="material-icons-round text-[#00f2ff] text-2xl">router</span>
                             <input type="text" id="input-name-${nodeId}" value="${defaultName}" onfocus="checkFocus(this)" onchange="requireAuth(() => updateNodeName('${nodeId}', this.value))" class="node-name-input" placeholder="ตั้งชื่อโซน...">
+                            <div id="vis-badge-${nodeId}" class="ml-2 hidden items-center bg-black/40 px-2 py-0.5 rounded-full border border-white/5"></div>
                         </div>
                         <span class="text-xs text-slate-500 flex items-center bg-white/5 px-2 py-1 rounded-full" id="status-${nodeId}"><span class="w-2 h-2 rounded-full bg-slate-500 mr-2"></span> รอการเชื่อมต่อ...</span>
                     </div>
@@ -354,6 +354,8 @@
                 </div>`;
                 container.insertAdjacentHTML('beforeend', html);
             });
+            
+            buildAdminVisibilityToggles(); // สร้างสวิตช์ในการ์ดแอดมินรอไว้
         }
 
         function buildRelayLayout(nodeId, type, title, icon, color, placeholder, isExtra = false) {
@@ -383,7 +385,8 @@
                 </div>
             </div>`;
         }
-       function buildCameraModule(nodeId, index, isExtra = false) {
+        
+        function buildCameraModule(nodeId, index, isExtra = false) {
             let typeId = `cam${index}`;
             let displayState = isExtra ? (extraDevices[`${nodeId}-${typeId}`] ? 'flex' : 'none') : (hiddenRelays[`${nodeId}-${typeId}`] ? 'none' : 'flex');
             let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${typeId}')` : `hideRelayCard('${nodeId}', '${typeId}')`;
@@ -406,7 +409,7 @@
                     <span class="text-[8px] text-slate-500 font-mono">STREAM LIVE</span>
                 </div>
                 
-                <div class="grid grid-cols-5 gap-1.5 mb-3 px-2">
+                 <div class="grid grid-cols-5 gap-1.5 mb-3 px-2">
                     <div></div>
                     <button class="bg-white/5 p-1.5 rounded-lg active:scale-95 active:bg-[#00f2ff] active:text-black flex justify-center items-center transition-all duration-75" onclick="requireAuth(()=>{})"><span class="material-icons-round text-base">arrow_drop_up</span></button>
                     <div></div>
@@ -423,8 +426,7 @@
                 </div>
             </div>`;
         }
-
-        function buildIRModule(nodeId) {
+function buildIRModule(nodeId) {
             return `
             <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative flex flex-col justify-between shadow-lg">
                 <div class="flex items-center gap-2 mb-3"><span class="material-icons-round text-teal-400">ac_unit</span><span class="font-bold text-xs text-white">ควบคุมแอร์ (IR Node)</span></div>
@@ -468,6 +470,36 @@
             </div>`;
         }
 
+        function buildAdminVisibilityToggles() {
+            const container = document.getElementById('visibility-toggles-container');
+            if(!container) return;
+            container.innerHTML = '';
+            ALL_NODES.forEach(n => {
+                container.insertAdjacentHTML('beforeend', `
+                <div class="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5 shadow-md">
+                    <div>
+                        <div class="text-[10px] font-bold text-[#00f2ff] uppercase">${n}</div>
+                        <div class="text-[9px] text-slate-400" id="vis-label-${n}">โหลดข้อมูล...</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="vis-chk-${n}" onchange="toggleBoardVisibility('${n}', this.checked)" class="sr-only peer">
+                        <div class="w-8 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-purple-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all"></div>
+                    </label>
+                </div>
+                `);
+            });
+        }
+
+        function toggleBoardVisibility(nodeId, isVisible) {
+            let payload = {}; payload[nodeId] = isVisible;
+            fetch(`${FIREBASE_URL}/board_visibility.json`, { method: "PATCH", body: JSON.stringify(payload) })
+                .then(() => {
+                    let statusText = isVisible ? 'เปิดให้ทุกคนเห็น' : 'ซ่อนเป็นส่วนตัว';
+                    pushLog(`เปลี่ยนสิทธิ์การมองเห็นบอร์ด [${nodeId}] เป็น: ${statusText}`);
+                    showToast(`อัปเดตสิทธิ์ ${nodeId} แล้ว!`);
+                });
+        }
+
         function fetchWeatherData(lat, lon) {
             fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
                 .then(res => res.json())
@@ -491,7 +523,6 @@
         function initLocationAndWeather() {
             const fallbackLat = 13.8167; // บ้านโป่ง
             const fallbackLon = 99.8833;
-
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => fetchWeatherData(pos.coords.latitude, pos.coords.longitude),
@@ -503,11 +534,8 @@
         }
 
         function requireAuth(allowedAction) {
-            if (currentUser) {
-                allowedAction();
-            } else {
-                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาล็อกอินตามสิทธิ์ หากไม่มีบัญชีติดต่อผู้ดูแลระบบ");
-            }
+            if (currentUser) { allowedAction(); } 
+            else { showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาล็อกอินตามสิทธิ์ หากไม่มีบัญชีติดต่อผู้ดูแลระบบ"); }
         }
 
         function showToast(msg) {
@@ -523,7 +551,6 @@
         function doLogin() {
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
-            
             if(!user || !pass) { showToast("กรุณากรอกข้อมูลให้ครบถ้วน"); return; }
 
             fetch(`${FIREBASE_URL}/users/${user}.json`)
@@ -534,6 +561,7 @@
                         currentUser = user;
                         closeLogin();
                         updateDashboardSkins();
+                        pollFirebaseData(); // โหลดใหม่เพื่ออัปเดตการแสดงผลบอร์ดตามสิทธิ์
                         pushLog("เข้าสู่ระบบสำนักงานสำเร็จ");
                         showToast(`สิทธิ์การเข้าใช้งานโมดูลของ '${user}' เปิดทำงานแล้ว`);
                     } else {
@@ -541,12 +569,12 @@
                     }
                 }).catch(() => { showToast("เกิดข้อผิดพลาดในการเชื่อมต่อสิทธิ์ความปลอดภัย"); });
         }
-
         function doLogout() {
             pushLog("ลงชื่อออกจากระบบควบคุม");
             sessionStorage.removeItem('currentUser');
             currentUser = null;
             updateDashboardSkins();
+            pollFirebaseData(); // รีโหลดสิทธิ์เพื่อให้กลับไปมองเห็นแค่ค่าพื้นฐาน (Node 1, 2)
             showToast("ลงชื่อออกจากระบบความปลอดภัยแล้ว");
         }
 
@@ -574,43 +602,45 @@
             const userActions = document.getElementById('user-actions');
             const profile = document.getElementById('user-profile');
             const adminCard = document.getElementById('admin-log-card');
-            const nodes = ['node1', 'node2'];
+            const adminVisCard = document.getElementById('admin-visibility-card');
 
             if (currentUser) {
-                bLogin.classList.add('hidden');
-                userActions.classList.remove('hidden');
-                profile.classList.remove('hidden');
+                bLogin.style.display = 'none';
+                userActions.style.display = 'flex';
+                profile.style.display = 'flex';
                 document.getElementById('current-user-name').innerText = currentUser;
 
-                nodes.forEach(n => {
+                ALL_NODES.forEach(n => {
                     for(let i=1; i<=4; i++) {
                         const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        // แก้ไขโดยใช้ inline style เพื่อบังคับเขียนทับ CSS เดิม
-                        if(lock) lock.style.display = 'none';
+                        if(lock) lock.style.display = 'none'; // ปลดล็อคกล้อง
                     }
                 });
 
                 if (currentUser === "อุบลพันธุ์") {
                     adminCard.classList.remove('hidden');
+                    adminVisCard.classList.remove('hidden');
                     pollSystemLogs();
                 } else {
                     adminCard.classList.add('hidden');
+                    adminVisCard.classList.add('hidden');
                 }
             } else {
-                bLogin.classList.remove('hidden');
-                userActions.classList.add('hidden');
-                profile.classList.add('hidden');
+                bLogin.style.display = 'flex';
+                userActions.style.display = 'none';
+                profile.style.display = 'none';
                 adminCard.classList.add('hidden');
+                adminVisCard.classList.add('hidden');
 
-                nodes.forEach(n => {
+                ALL_NODES.forEach(n => {
                     for(let i=1; i<=4; i++) {
                         const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        // แสดงกุญแจกลับมาเมื่อ Logout
-                        if(lock) lock.style.display = 'flex';
+                        if(lock) lock.style.display = 'flex'; // ล็อคกล้อง
                     }
                 });
             }
         }
+
         function pollSystemLogs() {
             if(currentUser !== "อุบลพันธุ์") return;
             fetch(`${FIREBASE_URL}/logs.json`)
@@ -636,17 +666,61 @@
             fetch(`${FIREBASE_URL}/users.json`).then(res => res.json()).then(data => {
                 if (!data) fetch(`${FIREBASE_URL}/users.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_USERS) });
             });
+            // ตรวจสอบและสร้าง DB สิทธิ์เริ่มต้นถ้ายังไม่มี
+            fetch(`${FIREBASE_URL}/board_visibility.json`).then(res => res.json()).then(data => {
+                if (!data) {
+                    let defVis = { node1: true, node2: true, node3: false, node4: false };
+                    fetch(`${FIREBASE_URL}/board_visibility.json`, { method: 'PUT', body: JSON.stringify(defVis) });
+                }
+            });
         }
 
         function pollFirebaseData() {
-            fetch(`${FIREBASE_URL}/farm.json`)
-                .then(res => res.json())
-                .then(data => {
-                    if (!data) return;
+            // ดึงสิทธิ์การมองเห็นบอร์ดก่อน
+            fetch(`${FIREBASE_URL}/board_visibility.json`).then(res => res.json()).then(visData => {
+                if (!visData) visData = { node1: true, node2: true, node3: false, node4: false };
+                
+                // นำสิทธิ์ไปซ่อนหรือเปิดบอร์ด
+                ALL_NODES.forEach(n => {
+                    const zoneEl = document.getElementById(`zone-${n}`);
+                    const badgeEl = document.getElementById(`vis-badge-${n}`);
                     
-                    Object.keys(data).forEach(nodeId => {
-                        if(!nodeId.startsWith('node')) return;
-                        let nodeData = data[nodeId];
+                    if(zoneEl) {
+                        if (!currentUser) {
+                            // แขก (ผู้ใช้ทั่วไปยังไม่ล็อกอิน) -> เห็นแค่ 1, 2 ตามโครงสร้างพื้นฐาน
+                            zoneEl.style.display = (n === 'node1' || n === 'node2') ? 'block' : 'none';
+                        } else if (currentUser === 'อุบลพันธุ์') {
+                            // แอดมิน -> เห็นทุกอย่าง 100%
+                            zoneEl.style.display = 'block';
+                            // อัปเดตสวิตช์ในการ์ดแอดมิน
+                            const chk = document.getElementById(`vis-chk-${n}`);
+                            if(chk && document.activeElement !== chk) chk.checked = visData[n];
+                        } else {
+                            // ผู้ใช้งานที่ล็อกอินแล้ว -> เห็นตามที่แอดมินตั้งค่าไว้ใน Firebase
+                            zoneEl.style.display = visData[n] ? 'block' : 'none';
+                        }
+                    }
+
+                    // แสดง Badge ใหัแอดมินเห็นสถานะการซ่อน/เปิดของแต่ละบอร์ด
+                    if(badgeEl) {
+                        if (currentUser === 'อุบลพันธุ์') {
+                            badgeEl.style.display = 'inline-flex';
+                            if (visData[n]) {
+                                badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
+                            } else {
+                                badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
+                            }
+                        } else {
+                            badgeEl.style.display = 'none';
+                        }
+                    }
+                });
+
+                // ดึงข้อมูลตัวเลขเซนเซอร์และค่าต่างๆ มาแสดงต่อ
+                fetch(`${FIREBASE_URL}/farm.json`).then(res => res.json()).then(data => {
+                    if (!data) return;
+                    ALL_NODES.forEach(nodeId => {
+                        let nodeData = data[nodeId] || {};
                         
                         const statusEl = document.getElementById(`status-${nodeId}`);
                         if(statusEl) statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span> <span class="text-green-400 font-bold">Online</span>`;
@@ -655,6 +729,10 @@
                         if(nameInput && document.activeElement !== nameInput && nodeData.name) {
                             nameInput.value = nodeData.name;
                         }
+                        
+                        // อัปเดตชื่อในการ์ดจัดการสิทธิ์ของแอดมินให้ตรงกับที่เปลี่ยน
+                        const visLabel = document.getElementById(`vis-label-${nodeId}`);
+                        if(visLabel && nodeData.name) visLabel.innerText = nodeData.name;
 
                         const tEl = document.getElementById(`val-${nodeId}-temp`);
                         const hEl = document.getElementById(`val-${nodeId}-hum`);
@@ -692,7 +770,8 @@
                     });
                     
                     if(currentUser === "อุบลพันธุ์") pollSystemLogs();
-                }).catch(e => console.log("Firebase Sync Loading..."));
+                });
+            }).catch(e => console.log("Firebase Sync Loading..."));
         }
 
         function updateNodeName(nodeId, newName) {
@@ -717,7 +796,6 @@
                     pushLog(`สั่งการแมนนวลรีเลย์: [${type}] ที่บอร์ด [${nodeId}] -> ${text}`);
                 });
         }
-
         function saveNodeConfig(nodeId, btnElement) {
             const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
             let configPayload = {};
