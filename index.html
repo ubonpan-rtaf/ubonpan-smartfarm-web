@@ -127,16 +127,27 @@
                 </div>
             </div>
             
-            <div class="flex items-center justify-between xl:justify-end gap-4 w-full xl:w-auto">
-                <div id="user-profile" class="text-right hidden bg-white/5 px-3 py-1 rounded-lg border border-white/5">
-                    <div class="text-[9px] text-slate-400 uppercase tracking-wider">เจ้าหน้าที่เข้าใช้งาน</div>
-                    <div class="text-xs font-bold text-[#00f2ff]" id="current-user-name">User</div>
+            <div class="flex flex-wrap items-center justify-between xl:justify-end gap-2 w-full xl:w-auto">
+                <button onclick="restoreHiddenRelays()" class="bg-yellow-500/10 text-yellow-400 px-3 py-2 rounded-xl text-xs font-bold border border-yellow-500/20 hover:bg-yellow-500 hover:text-white transition-all shadow-md">เรียกคืนอุปกรณ์ที่ซ่อนไว้</button>
+                
+                <div id="user-profile" class="hidden flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+                    <div class="text-[9px] text-slate-400 uppercase tracking-wider">เข้าใช้งานโดย</div>
+                    <div class="text-xs font-bold text-[#00f2ff] mr-2" id="current-user-name">User</div>
                 </div>
+                
+                <div id="user-actions" class="hidden flex flex-wrap items-center gap-2">
+                    <div id="password-card" class="glass px-3 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 shadow-md">
+                         <span class="material-icons-round text-xs text-[#00f2ff]">vpn_key</span>
+                        <input type="password" id="new-password" placeholder="รหัสผ่านใหม่" class="config-input text-xs w-28 py-1">
+                        <button onclick="changePassword()" class="bg-green-500/20 text-green-400 px-3 py-1 rounded-lg font-bold text-[10px] hover:bg-green-500 hover:text-white transition-all">เปลี่ยน</button>
+                    </div>
+                    <button id="btn-logout" onclick="doLogout()" class="bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white border border-red-500/20 transition-all flex items-center gap-1.5 shadow-md">
+                        <span class="material-icons-round text-sm">power_settings_new</span> ออก
+                    </button>
+                </div>
+
                 <button id="btn-login" onclick="openLogin()" class="bg-white/5 hover:bg-[#00f2ff] hover:text-black border border-white/15 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md">
                     <span class="material-icons-round text-sm">lock_open</span> ลงชื่อเข้าใช้งาน
-                </button>
-                <button id="btn-logout" onclick="doLogout()" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white border border-red-500/20 px-4 py-2 rounded-xl text-xs font-bold transition-all hidden flex items-center gap-1.5 shadow-md">
-                    <span class="material-icons-round text-sm">power_settings_new</span> ออกจากระบบ
                 </button>
             </div>
         </header>
@@ -148,14 +159,6 @@
             <div class="glass p-2.5 rounded-xl text-center border border-white/5"><div class="text-[9px] text-slate-400 uppercase">สภาพเมฆ</div><div class="font-bold text-white text-sm mt-0.5 truncate px-1" id="w-cloud">--</div></div>
             <div class="glass p-2.5 rounded-xl text-center border border-white/5"><div class="text-[9px] text-slate-400 uppercase">ความเร็วลม</div><div class="font-bold text-white text-sm mt-0.5" id="w-wind">-- m/s</div></div>
             <div class="glass p-2.5 rounded-xl text-center border border-white/5"><div class="text-[9px] text-slate-400 uppercase">ฝุ่น PM2.5</div><div class="font-bold text-yellow-400 text-sm mt-0.5" id="w-pm25">--</div></div>
-        </div>
-
-        <div id="password-card" class="glass p-5 rounded-2xl border border-white/10 mb-8 hidden max-w-md shadow-xl neon-border">
-            <h4 class="text-xs font-bold text-[#00f2ff] mb-3 flex items-center uppercase tracking-wider"><span class="material-icons-round text-sm mr-1">vpn_key</span> ปรับแต่งรหัสผ่านของคุณ</h4>
-            <div class="flex gap-2">
-                <input type="password" id="new-password" placeholder="พิมพ์รหัสผ่านใหม่ที่จำง่ายลงตรงนี้..." class="config-input flex-1 text-xs px-3">
-                <button onclick="changePassword()" class="bg-green-500/20 text-green-400 px-4 py-1.5 rounded-lg font-bold text-xs border border-green-500/30 hover:bg-green-500 hover:text-white transition-all shadow-md">ยืนยันการเปลี่ยน</button>
-            </div>
         </div>
 
         <div id="dynamic-farm-container" class="space-y-8 flex-1"></div>
@@ -198,23 +201,39 @@
             "อุบลพันธุ์": "เบ04500"
         };
 
-        // --- ระบบเช็คสิทธิ์สำหรับกล่องพิมพ์ข้อมูล (Focus Check) ---
+        // --- ระบบเช็คสิทธิ์ ---
         function checkFocus(el) {
             if (!currentUser) {
-                el.blur(); // เด้งเคอร์เซอร์ออกถ้ายังไม่ล็อกอิน
+                el.blur(); 
                 showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานเพื่อตั้งค่า");
             }
         }
 
-        // --- ระบบเช็คสิทธิ์สำหรับสวิตช์ (Toggle Check) ---
         function checkToggle(el, nodeId, type) {
             if (!currentUser) {
-                el.checked = !el.checked; // ดีดสวิตช์กลับ
+                el.checked = !el.checked; 
                 showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อน");
             } else {
                 toggleRelay(nodeId, type, el.checked);
             }
         }
+
+        // --- ฟังก์ชันเรียกคืนอุปกรณ์ที่ถูกซ่อน ---
+        function restoreHiddenRelays() {
+            if (!currentUser) {
+                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อนทำรายการนี้");
+                return;
+            }
+            if(confirm('ต้องการเรียกคืนการ์ดอุปกรณ์ทั้งหมดที่เคยซ่อนไว้กลับมาแสดงใช่หรือไม่?')) {
+                localStorage.removeItem('hiddenRelays');
+                hiddenRelays = {};
+                pushLog('สั่งเรียกคืนการแสดงผลการ์ดอุปกรณ์ทั้งหมดบนหน้าจอ');
+                generateNodePlaceholders(); // วาด UI ใหม่
+                pollFirebaseData(); // ดึงข้อมูลล่าสุดมาแปะ
+                showToast("เรียกคืนอุปกรณ์สำเร็จ!");
+            }
+        }
+
 
         function generateNodePlaceholders() {
             const container = document.getElementById('dynamic-farm-container');
@@ -261,11 +280,12 @@
                     </div>
 
                     <div class="flex justify-between items-center mt-8 mb-4 border-t border-white/5 pt-6">
-                        <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">devices_other</span> Smart Devices & CCTV Terminal</h4>
+                        <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">devices_other</span> Smart Devices & Sensors</h4>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${buildCameraModule(nodeId)}
                         ${buildIRModule(nodeId)}
+                        ${buildGasModule(nodeId)}
                     </div>
                 </div>`;
                 container.insertAdjacentHTML('beforeend', html);
@@ -275,7 +295,7 @@
         function buildRelayLayout(nodeId, type, title, icon, color, placeholder) {
             let display = hiddenRelays[`${nodeId}-${type}`] ? 'none' : 'block';
             return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative" id="card-${nodeId}-${type}" style="display: ${display};">
+            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative hover:border-white/20 transition-all shadow-md" id="card-${nodeId}-${type}" style="display: ${display};">
                 <button onclick="requireAuth(() => hideRelayCard('${nodeId}', '${type}'))" class="absolute top-2 right-2 text-slate-500 hover:text-red-400"><span class="material-icons-round text-sm">close</span></button>
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-icons-round text-${color}">${icon}</span>
@@ -284,7 +304,7 @@
                 <div class="space-y-2 mb-3">
                     <select id="${nodeId}-${type}-mode" onfocus="checkFocus(this)" class="config-input bg-black/50 text-[10px]"><option value="auto">MODE: AUTO</option><option value="manual">MODE: MANUAL</option></select>
                     <input type="text" id="${nodeId}-${type}-logic" placeholder="เงื่อนไข: ${placeholder}" onfocus="checkFocus(this)" class="config-input text-[10px]">
-                    <div class="flex gap-1"><input type="time" id="${nodeId}-${type}-timeStart" onfocus="checkFocus(this)" class="config-input text-[10px]"><input type="time" id="${nodeId}-${type}-timeEnd" onfocus="checkFocus(this)" class="config-input text-[10px]"></div>
+                    <div class="flex gap-1"><input type="time" id="${nodeId}-${type}-timeStart" onfocus="checkFocus(this)" class="config-input text-[10px]" title="เวลาเริ่ม"><input type="time" id="${nodeId}-${type}-timeEnd" onfocus="checkFocus(this)" class="config-input text-[10px]" title="เวลาหยุด"></div>
                     <input type="number" id="${nodeId}-${type}-dur" placeholder="ระยะเวลา (นาที)" onfocus="checkFocus(this)" class="config-input text-[10px]">
                     <select id="${nodeId}-${type}-dayMode" onfocus="checkFocus(this)" class="config-input text-[10px]"><option value="all">ทำงานทุกวัน (All Days)</option></select>
                 </div>
@@ -297,21 +317,39 @@
                 </div>
             </div>`;
         }
-
+        
         function buildCameraModule(nodeId) {
             return `
             <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex flex-col justify-between" id="cam-card-${nodeId}">
-                <div class="flex items-center gap-2 mb-3"><span class="material-icons-round text-purple-400">videocam</span><span class="font-bold text-xs text-white">กล้องวงจรปิด (Tapo C200C)</span></div>
-                <div class="w-full h-32 bg-black/80 rounded-lg flex flex-col items-center justify-center relative border border-dashed border-slate-600 mb-3">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="material-icons-round text-purple-400">videocam</span><span class="font-bold text-xs text-white">กล้อง (Tapo C200C)</span>
+                    </div>
+                </div>
+                
+                <div class="w-full h-28 bg-black/80 rounded-lg flex flex-col items-center justify-center relative border border-dashed border-slate-600 mb-2 overflow-hidden">
                     <div class="locked-overlay text-red-400" id="cam-lock-${nodeId}">
                         <span class="material-icons-round text-3xl mb-1">lock</span>
-                        <span class="text-[10px] font-bold px-4 leading-relaxed">ดูภาพสดได้เฉพาะผู้มีสิทธิ์<br>กรุณาลงชื่อเข้าใช้ระบบ</span>
+                        <span class="text-[10px] font-bold px-4 leading-relaxed">ดูภาพสดได้เฉพาะผู้มีสิทธิ์<br>กรุณาลงชื่อเข้าใช้</span>
                     </div>
-                    <span class="material-icons-round text-3xl opacity-40 mb-1 text-slate-400 animate-pulse">visibility</span>
-                    <span class="text-[9px] text-slate-500 font-mono tracking-widest">RTSP STREAM LIVE</span>
+                    <span class="material-icons-round text-3xl opacity-40 text-slate-500 mb-1">visibility</span>
+                    <span class="text-[8px] text-slate-500 font-mono">STREAM LIVE</span>
                 </div>
+                
+                <div class="grid grid-cols-5 gap-1 mb-2 px-4">
+                    <div></div>
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_drop_up</span></button>
+                    <div></div>
+                    <button class="bg-white/5 p-1 rounded hover:bg-green-400 hover:text-black flex justify-center items-center col-span-2" onclick="requireAuth(()=>{})" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-sm">camera_alt</span></button>
+                    
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_left</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_drop_down</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-[#00f2ff] hover:text-black flex justify-center items-center" onclick="requireAuth(()=>{})"><span class="material-icons-round text-sm">arrow_right</span></button>
+                    <button class="bg-white/5 p-1 rounded hover:bg-red-400 hover:text-white flex justify-center items-center col-span-2" onclick="requireAuth(()=>{})" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-sm">file_download</span></button>
+                </div>
+                
                 <div class="flex justify-between items-center bg-black/40 p-1.5 rounded border border-white/5">
-                    <input type="text" placeholder="rtsp://tapo-c200c/stream1" class="config-input text-[10px] w-full bg-transparent border-none" disabled>
+                    <input type="text" placeholder="RTSP URL Config..." class="config-input text-[10px] w-full bg-transparent border-none" disabled>
                 </div>
             </div>`;
         }
@@ -322,7 +360,7 @@
                 <div class="flex items-center gap-2 mb-3"><span class="material-icons-round text-teal-400">ac_unit</span><span class="font-bold text-xs text-white">ควบคุมแอร์ (IR Node)</span></div>
                 <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-lg mb-3 border border-white/5">
                     <div class="text-center w-1/2 border-r border-white/10">
-                        <div class="text-[9px] text-slate-400 uppercase mb-0.5">องศาเป้าหมาย</div>
+                        <div class="text-[9px] text-slate-400 uppercase mb-0.5">อุณหภูมิ</div>
                         <div class="text-xl font-bold flex items-center justify-center gap-1.5">
                             <button onclick="requireAuth(() => {})" class="text-slate-500 hover:text-[#00f2ff]"><span class="material-icons-round text-base">remove_circle</span></button>
                             <span class="font-mono text-sm">25°C</span>
@@ -330,13 +368,32 @@
                         </div>
                     </div>
                     <div class="flex flex-col gap-1 w-1/2 pl-3">
-                        <button onclick="requireAuth(() => pushLog('ส่งคลื่นอินฟราเรด: สั่งเปิดแอร์สำนักงาน'))" class="w-full bg-green-500/10 text-green-400 py-1 rounded text-[10px] font-bold border border-green-500/20 hover:bg-green-500 hover:text-white transition-all">เปิดแอร์</button>
-                        <button onclick="requireAuth(() => pushLog('ส่งคลื่นอินฟราเรด: สั่งปิดแอร์สำนักงาน'))" class="w-full bg-red-500/10 text-red-400 py-1 rounded text-[10px] font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">ปิดแอร์</button>
+                        <button onclick="requireAuth(() => pushLog('ส่งคำสั่ง IR: เปิดแอร์'))" class="w-full bg-green-500/10 text-green-400 py-1 rounded text-[10px] font-bold border border-green-500/20 hover:bg-green-500 hover:text-white transition-all">เปิด</button>
+                        <button onclick="requireAuth(() => pushLog('ส่งคำสั่ง IR: ปิดแอร์'))" class="w-full bg-red-500/10 text-red-400 py-1 rounded text-[10px] font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">ปิด</button>
                     </div>
                 </div>
                 <div class="flex gap-1">
-                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>โหมด COOL</option></select>
-                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>พัดลม AUTO</option></select>
+                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>โหมด: COOL</option></select>
+                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>พัดลม: AUTO</option></select>
+                </div>
+            </div>`;
+        }
+
+        function buildGasModule(nodeId) {
+            return `
+            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex flex-col justify-between">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-icons-round text-yellow-500">local_fire_department</span>
+                    <span class="font-bold text-xs text-white">เซนเซอร์ควัน & ก๊าซ (MQ-2)</span>
+                </div>
+                <div class="flex flex-col items-center justify-center flex-1 bg-black/40 rounded-lg border border-white/5 py-4">
+                    <div class="text-[10px] text-slate-400 uppercase mb-1">ระดับความเข้มข้น</div>
+                    <div class="text-3xl font-bold text-yellow-500 font-mono flex items-end gap-1" id="val-${nodeId}-gas">
+                        0 <span class="text-[10px] text-slate-500 mb-1">ppm</span>
+                    </div>
+                    <div class="mt-3 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-[9px] font-bold flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> สถานะปกติ
+                    </div>
                 </div>
             </div>`;
         }
@@ -416,6 +473,7 @@
                     }
                 }).catch(() => { showToast("เกิดข้อผิดพลาดในการเชื่อมต่อสิทธิ์ความปลอดภัย"); });
         }
+
         function doLogout() {
             pushLog("ลงชื่อออกจากระบบควบคุม");
             sessionStorage.removeItem('currentUser');
@@ -445,17 +503,15 @@
 
         function updateDashboardSkins() {
             const bLogin = document.getElementById('btn-login');
-            const bLogout = document.getElementById('btn-logout');
+            const userActions = document.getElementById('user-actions');
             const profile = document.getElementById('user-profile');
-            const pCard = document.getElementById('password-card');
             const adminCard = document.getElementById('admin-log-card');
             const nodes = ['node1', 'node2'];
 
             if (currentUser) {
                 bLogin.classList.add('hidden');
-                bLogout.classList.remove('hidden');
+                userActions.classList.remove('hidden');
                 profile.classList.remove('hidden');
-                pCard.classList.remove('hidden');
                 document.getElementById('current-user-name').innerText = currentUser;
 
                 nodes.forEach(n => {
@@ -471,9 +527,8 @@
                 }
             } else {
                 bLogin.classList.remove('hidden');
-                bLogout.classList.add('hidden');
+                userActions.classList.add('hidden');
                 profile.classList.add('hidden');
-                pCard.classList.add('hidden');
                 adminCard.classList.add('hidden');
 
                 nodes.forEach(n => {
@@ -509,7 +564,7 @@
                 if (!data) fetch(`${FIREBASE_URL}/users.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_USERS) });
             });
         }
-
+        
         function pollFirebaseData() {
             fetch(`${FIREBASE_URL}/farm.json`)
                 .then(res => res.json())
@@ -531,10 +586,12 @@
                         const tEl = document.getElementById(`val-${nodeId}-temp`);
                         const hEl = document.getElementById(`val-${nodeId}-hum`);
                         const sEl = document.getElementById(`val-${nodeId}-soil`);
+                        const gasEl = document.getElementById(`val-${nodeId}-gas`);
                         
                         if(tEl) tEl.innerText = nodeData.temp != null ? `${nodeData.temp.toFixed(1)}°C` : '--°C';
                         if(hEl) hEl.innerText = nodeData.hum != null ? `${nodeData.hum.toFixed(1)}%` : '--%';
                         if(sEl) sEl.innerText = nodeData.soil != null ? `${nodeData.soil}%` : '--%';
+                        if(gasEl) gasEl.innerHTML = `${nodeData.gas != null ? nodeData.gas : 0} <span class="text-[10px] text-slate-500 mb-1">ppm</span>`;
 
                         let conf = nodeData.config || {};
                         const types = ['pump', 'fan', 'mist', 'light'];
