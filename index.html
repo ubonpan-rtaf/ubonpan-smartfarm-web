@@ -47,19 +47,27 @@
         .node-name-input:focus { border-bottom-color: var(--primary); color: var(--primary); }
         
         #toast { 
-            visibility: hidden; min-width: 280px; background-color: #ef4444; color: #fff; 
-            text-align: center; border-radius: 8px; padding: 16px; position: fixed; 
-            z-index: 200; left: 50%; bottom: 30px; transform: translateX(-50%); 
+            visibility: hidden; min-width: 280px; background-color: #334155; color: #fff; 
+            text-align: left; border-radius: 8px; padding: 16px; position: fixed; 
+            z-index: 300; left: 50%; bottom: 30px; transform: translateX(-50%); 
             font-size: 13px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); opacity: 0; 
-            transition: opacity 0.3s, bottom 0.3s; border: 1px solid rgba(239, 68, 68, 0.4);
+            transition: opacity 0.3s, bottom 0.3s; border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; gap: 12px; align-items: start;
         }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        #toast.error-toast { background-color: #ef4444; border-color: rgba(239, 68, 68, 0.4); justify-content: center; text-align: center; }
         
         .locked-overlay { 
             position: absolute; inset: 0; background: rgba(7, 11, 22, 0.85); 
             backdrop-filter: blur(6px); display: flex; flex-direction: column; 
             justify-content: center; align-items: center; z-index: 20; border-radius: 0.75rem; 
             text-align: center; border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* สไตล์พิเศษสำหรับโหมดเรียนรู้ */
+        .help-mode-active *[data-help] {
+            cursor: help !important;
+            box-shadow: 0 0 0 1px rgba(0, 242, 255, 0.3) inset !important;
         }
     </style>
 </head>
@@ -91,9 +99,12 @@
         </div>
     </div>
 
-    <div id="toast" class="flex items-center gap-2 justify-center">
-        <span class="material-icons-round text-base">gpp_maybe</span> 
-        <span id="toast-msg"></span>
+    <div id="toast">
+        <span class="material-icons-round text-xl text-[#00f2ff]" id="toast-icon">info</span> 
+        <div class="flex-1 flex flex-col">
+            <span class="font-bold text-[#00f2ff] text-[10px] uppercase mb-0.5" id="toast-title">ข้อมูล</span>
+            <span id="toast-msg" class="leading-relaxed text-xs"></span>
+        </div>
     </div>
 
     <aside class="w-64 glass border-r border-white/5 flex flex-col fixed h-full z-50 hidden md:flex">
@@ -128,8 +139,6 @@
             </div>
             
             <div class="flex flex-wrap items-center justify-between xl:justify-end gap-2 w-full xl:w-auto">
-                <button onclick="restoreHiddenRelays()" class="bg-yellow-500/10 text-yellow-400 px-3 py-2 rounded-xl text-xs font-bold border border-yellow-500/20 active:bg-yellow-500 active:text-white active:scale-95 transition-all shadow-md">เรียกคืนอุปกรณ์ที่ซ่อนไว้</button>
-                
                 <div id="user-profile" class="hidden flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
                     <div class="text-[9px] text-slate-400 uppercase tracking-wider">เข้าใช้งานโดย</div>
                     <div class="text-xs font-bold text-[#00f2ff] mr-2" id="current-user-name">User</div>
@@ -161,16 +170,29 @@
             <div class="glass p-2.5 rounded-xl text-center border border-white/5"><div class="text-[9px] text-slate-400 uppercase">ฝุ่น PM2.5</div><div class="font-bold text-yellow-400 text-sm mt-0.5" id="w-pm25">--</div></div>
         </div>
 
-        <div id="dynamic-farm-container" class="space-y-8 flex-1"></div>
+        <div id="dynamic-farm-container" class="space-y-8"></div>
+        
+        <div id="personal-user-board-container" class="mt-8"></div>
 
-        <div id="admin-visibility-card" class="glass p-6 rounded-2xl border border-purple-500/30 shadow-xl mt-8 hidden">
+        <div id="admin-user-directory-card" class="glass p-6 rounded-2xl border border-blue-500/30 shadow-xl mt-8 hidden">
             <div class="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
-                <span class="material-icons-round text-purple-400 animate-pulse">visibility</span>
-                <h3 class="text-xs font-bold text-purple-400 uppercase tracking-widest">ระบบจัดการสิทธิ์บอร์ด (Board Visibility Manager)</h3>
+                <span class="material-icons-round text-blue-400">folder_shared</span>
+                <h3 class="text-xs font-bold text-blue-400 uppercase tracking-widest">ไดเรกทอรีบอร์ดส่วนตัวผู้ใช้งาน (User Boards Directory)</h3>
             </div>
-            <p class="text-[10px] text-slate-400 mb-4">เลือกสวิตช์เพื่อกำหนดว่าบอร์ดใดบ้างที่อนุญาตให้ "ผู้ใช้งานทั่วไปและแขก" มองเห็นได้บนหน้าเว็บ</p>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="visibility-toggles-container">
+            <p class="text-[10px] text-slate-400 mb-4">คลิกที่รายชื่อเพื่อโหลดและตรวจสอบข้อมูลบอร์ดส่วนตัวของผู้ใช้งานแต่ละท่าน</p>
+            <div class="flex flex-wrap gap-2 mb-6" id="user-dir-buttons">
+                </div>
+            
+            <div id="admin-viewing-user-board" class="border-t border-dashed border-white/10 pt-6"></div>
+        </div>
+
+        <div id="admin-visibility-card" class="glass p-6 rounded-2xl border border-purple-500/30 shadow-xl mt-4 hidden">
+            <div class="flex items-center gap-2 mb-4 border-b border-white/10 pb-3">
+                <span class="material-icons-round text-purple-400">visibility</span>
+                <h3 class="text-xs font-bold text-purple-400 uppercase tracking-widest">ระบบจัดการสิทธิ์บอร์ดส่วนกลาง (Global Visibility)</h3>
             </div>
+            <p class="text-[10px] text-slate-400 mb-4">กำหนดบอร์ดส่วนกลางที่อนุญาตให้ผู้ใช้งานทั่วไปมองเห็นได้</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="visibility-toggles-container"></div>
         </div>
 
         <div id="admin-log-card" class="glass p-6 rounded-2xl border border-red-500/20 shadow-xl mt-4 hidden">
@@ -200,34 +222,63 @@
         const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
         
         let currentUser = sessionStorage.getItem('currentUser'); 
-        let hiddenRelays = JSON.parse(localStorage.getItem('hiddenRelays')) || {};
-        let extraDevices = JSON.parse(localStorage.getItem('extraDevices')) || {};
         let globalVisibility = {};
+        let helpModeEnabled = false; // สถานะโหมดเรียนรู้
+        let adminViewingUserId = null; // เก็บค่าว่า Admin กำลังดูบอร์ดใครอยู่
 
         const ALL_NODES = ['node1', 'node2', 'node3', 'node4'];
 
+        // อัปเดตรายชื่อผู้ใช้ แยก "หมวดแนน" และ "แนน หูกระทะ"
         const DEFAULT_USERS = {
             "ณรงค์ชัย": "โจ้04100",
             "ชญาดา": "แป้ง04200",
-            "วัชราภรณ์": "แนน04300",
+            "หมวดแนน": "แนน04300",
+            "แนน หูกระทะ": "แนน04301",
             "ณภัสกร": "จูน04400",
             "อุบลพันธุ์": "เบ04500"
         };
 
+        // --- ระบบ Help Mode (ดักจับการคลิกเพื่ออธิบาย) ---
+        document.addEventListener('click', function(e) {
+            if (helpModeEnabled) {
+                // หา element ที่มี data-help
+                let helpEl = e.target.closest('[data-help]');
+                if (helpEl) {
+                    e.preventDefault(); // ยกเลิกการทำงานปกติของปุ่ม
+                    e.stopPropagation();
+                    let title = helpEl.getAttribute('data-help-title') || "คำอธิบายการทำงาน";
+                    let text = helpEl.getAttribute('data-help');
+                    showToast(text, title, 'help_outline');
+                }
+            }
+        }, true); // ใช้ Capture phase เพื่อดักก่อน Event ปกติ
+
+        function toggleHelpMode(el) {
+            helpModeEnabled = el.checked;
+            const container = document.getElementById(currentUser === 'อุบลพันธุ์' ? 'admin-viewing-user-board' : 'personal-user-board-container');
+            if(container) {
+                if(helpModeEnabled) container.classList.add('help-mode-active');
+                else container.classList.remove('help-mode-active');
+            }
+            if(helpModeEnabled) {
+                showToast("เอานิ้วจิ้มที่ปุ่มหรือช่องข้อมูลต่างๆ เพื่ออ่านคำอธิบายได้เลยครับ (ระบบจะไม่ทำงานจริงในโหมดนี้)", "เปิดโหมดเรียนรู้", "school");
+            }
+        }
+
+        // --- Core Functions ---
         function checkFocus(el) {
-            if (!currentUser) { el.blur(); showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานเพื่อตั้งค่า"); }
+            if (!currentUser) { el.blur(); showToast("กรุณาลงชื่อเข้าใช้งานก่อนตั้งค่า", "ไม่มีสิทธิ์เข้าถึง", "gpp_maybe", true); }
         }
 
         function checkToggle(el, nodeId, type) {
             if (!currentUser) {
                 el.checked = !el.checked; 
-                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อน");
+                showToast("กรุณาลงชื่อเข้าใช้งานก่อนสั่งงาน", "ไม่มีสิทธิ์เข้าถึง", "gpp_maybe", true);
             } else {
                 toggleRelay(nodeId, type, el.checked);
             }
         }
 
-        // --- ระบบควบคุมปุ่มกล้อง (Momentary Switch) ---
         function triggerCamAction(btn, actionName) {
             requireAuth(() => {
                 btn.classList.add('bg-[#00f2ff]', 'text-black');
@@ -253,166 +304,92 @@
             });
         }
 
-        function restoreHiddenRelays() {
-            if (!currentUser) {
-                showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาลงชื่อเข้าใช้งานก่อนทำรายการนี้"); return;
-            }
-            if(confirm('ต้องการเรียกคืนอุปกรณ์ทั้งหมดที่เคยซ่อนไว้กลับมาแสดงใช่หรือไม่?')) {
-                localStorage.removeItem('hiddenRelays');
-                hiddenRelays = {};
-                pushLog('สั่งเรียกคืนการแสดงผลอุปกรณ์พื้นฐานทั้งหมด');
-                generateNodePlaceholders(globalVisibility); 
-                pollFirebaseData(); 
-                updateDashboardSkins(); 
-                showToast("เรียกคืนอุปกรณ์สำเร็จ!");
-            }
-        }
+        // --- ระบบ Render โครงสร้างบอร์ด (ใช้ร่วมกันทั้งบอร์ดกลางและบอร์ดผู้ใช้) ---
+        function buildBoardHTML(nodeId, defaultName, isPersonalBoard = false) {
+            // แทรก data-help สำหรับโหมดเรียนรู้
+            const hName = `data-help-title="ช่องตั้งชื่อบอร์ด" data-help="ใช้สำหรับเปลี่ยนชื่อสถานที่ให้จำง่าย เช่น สวนหลังบ้าน, โรงเรือน"`;
+            const hSave = `data-help-title="ปุ่มบันทึกการตั้งค่า" data-help="เมื่อกรอกเวลาหรือเงื่อนไขเสร็จ ต้องกดปุ่มนี้เพื่อส่งข้อมูลไปจำไว้ที่ฐานข้อมูล"`;
+            const hMode = `data-help-title="โหมดการทำงาน" data-help="AUTO = ทำงานตามเงื่อนไขเซนเซอร์/เวลา | MANUAL = ผู้ใช้กดเปิดปิดสวิตช์เอง"`;
+            const hLogic = `data-help-title="เงื่อนไขเซนเซอร์" data-help="ใช้กำหนดค่าตัวเลขที่ต้องการให้สวิตช์ทำงาน เช่น ดิน < 40 หรือ อุณหภูมิ > 35"`;
+            const hTime = `data-help-title="ตั้งเวลาทำงาน" data-help="ใช้กำหนดเวลาเริ่มและเวลาหยุดการทำงานในแต่ละวัน"`;
+            const hSwitch = `data-help-title="สวิตช์เปิด-ปิด (Manual)" data-help="ใช้กดเปิดหรือปิดอุปกรณ์ทันที (ทำงานอิสระจากโหมด Auto)"`;
 
-        function toggleAddMenu(nodeId) {
-            const menu = document.getElementById(`menu-add-${nodeId}`);
-            if(menu) { menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'grid' : 'none'; }
-        }
+            let headerExtra = isPersonalBoard ? `
+                <div class="flex items-center gap-2 bg-blue-500/20 px-3 py-1 rounded-lg border border-blue-500/30">
+                    <span class="material-icons-round text-[12px] text-blue-400">school</span>
+                    <span class="text-[10px] text-blue-400 font-bold">โหมดเรียนรู้</span>
+                    <label class="relative inline-flex items-center cursor-pointer ml-1">
+                        <input type="checkbox" onchange="toggleHelpMode(this)" class="sr-only peer">
+                        <div class="w-6 h-3 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:rounded-full after:h-2.5 after:w-2.5 after:transition-all"></div>
+                    </label>
+                </div>
+            ` : '';
 
-        function addExtraDevice(nodeId, type, label) {
-            extraDevices[`${nodeId}-${type}`] = true;
-            localStorage.setItem('extraDevices', JSON.stringify(extraDevices));
-            const card = document.getElementById(`card-${nodeId}-${type}`);
-            if(card) card.style.display = type.startsWith('cam') ? 'flex' : 'block';
-            toggleAddMenu(nodeId); 
-            pushLog(`เพิ่มโมดูลเสริม [${label}] เข้าสู่โซน [${nodeId}]`);
-            showToast(`เพิ่ม ${label} สำเร็จ!`);
-            updateDashboardSkins(); 
-        }
-
-        function hideExtraDevice(nodeId, type) {
-            if(confirm('ต้องการนำอุปกรณ์เสริมนี้ออกจากหน้าจอใช่หรือไม่?')) {
-                extraDevices[`${nodeId}-${type}`] = false;
-                localStorage.setItem('extraDevices', JSON.stringify(extraDevices));
-                document.getElementById(`card-${nodeId}-${type}`).style.display = 'none';
-                pushLog(`นำอุปกรณ์เสริม [${type}] ออกจากหน้าจอโซน [${nodeId}]`);
-            }
-        }
-
-        function hideRelayCard(nodeId, type) {
-            if(confirm('ต้องการปิดซ่อนอุปกรณ์นี้ออกจากหน้าจอใช่หรือไม่?')) {
-                hiddenRelays[`${nodeId}-${type}`] = true;
-                localStorage.setItem('hiddenRelays', JSON.stringify(hiddenRelays));
-                document.getElementById(`card-${nodeId}-${type}`).style.display = 'none';
-                pushLog(`ซ่อนการ์ดคำสั่งควบคุม [${type}] ของบอร์ด [${nodeId}]`);
-            }
-        }
-
-        // --- ระบบสร้างการ์ดบอร์ด (Hard Removal ถ้าไม่มีสิทธิ์) ---
-        function generateNodePlaceholders(visData) {
-            const container = document.getElementById('dynamic-farm-container');
-            container.innerHTML = '';
-
-            ALL_NODES.forEach(nodeId => {
-                let defaultName = nodeId === 'node1' ? 'บ้านเรนะ' : (nodeId === 'node2' ? 'สำนักงาน' : `ลูกข่าย ${nodeId.replace('node','')}`);
-                
-                let isVisible = false;
-                if (currentUser === 'อุบลพันธุ์') {
-                    isVisible = true; // แอดมินเห็นแบบ Full Access เสมอ
-                } else {
-                    // แขกและผู้ใช้ทั่วไป ตรวจสอบค่า Boolean ให้เป๊ะ
-                    isVisible = (visData && (visData[nodeId] === true || visData[nodeId] === "true")) ? true : false;
-                }
-                
-                // ถ้ายกเลิกสิทธิ์แล้ว "ไม่ต้องสร้าง HTML ส่วนนี้เลย" หายวับ 100% ป้องกันซ่อนแล้วพลาด
-                if (!isVisible) return; 
-
-                let html = `
-                <div class="glass p-6 md:p-8 rounded-2xl neon-border" id="zone-${nodeId}">
-                    <div class="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="material-icons-round text-[#00f2ff] text-2xl">router</span>
-                            <input type="text" id="input-name-${nodeId}" value="${defaultName}" onfocus="checkFocus(this)" onchange="requireAuth(() => updateNodeName('${nodeId}', this.value))" class="node-name-input" placeholder="ตั้งชื่อโซน...">
-                            <div id="vis-badge-${nodeId}" class="ml-2 hidden items-center bg-black/40 px-2 py-0.5 rounded-full border border-white/5"></div>
-                        </div>
+            return `
+            <div class="glass p-6 md:p-8 rounded-2xl ${isPersonalBoard ? 'border-2 border-dashed border-blue-500/30 bg-blue-900/10' : 'neon-border'}" id="zone-${nodeId}">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-white/10 pb-4 gap-4">
+                    <div class="flex items-center gap-3">
+                        <span class="material-icons-round text-[#00f2ff] text-2xl">${isPersonalBoard ? 'home_iot_device' : 'router'}</span>
+                        <input type="text" id="input-name-${nodeId}" value="${defaultName}" onfocus="checkFocus(this)" onchange="requireAuth(() => updateNodeName('${nodeId}', this.value))" class="node-name-input" placeholder="ตั้งชื่อโซน..." ${hName}>
+                        <div id="vis-badge-${nodeId}" class="ml-2 hidden items-center bg-black/40 px-2 py-0.5 rounded-full border border-white/5"></div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        ${headerExtra}
                         <span class="text-xs text-slate-500 flex items-center bg-white/5 px-2 py-1 rounded-full" id="status-${nodeId}"><span class="w-2 h-2 rounded-full bg-slate-500 mr-2"></span> รอการเชื่อมต่อ...</span>
                     </div>
-                    
-                    <div class="grid grid-cols-3 gap-4 mb-8">
-                        <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center shadow-inner">
-                            <div class="text-[10px] text-slate-400 uppercase mb-1">อุณหภูมิอากาศ</div>
-                            <div class="text-2xl font-bold text-red-400" id="val-${nodeId}-temp">--°C</div>
-                        </div>
-                        <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center shadow-inner">
-                            <div class="text-[10px] text-slate-400 uppercase mb-1">ความชื้นอากาศ</div>
-                            <div class="text-2xl font-bold text-[#00f2ff]" id="val-${nodeId}-hum">--%</div>
-                        </div>
-                        <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center shadow-inner">
-                            <div class="text-[10px] text-slate-400 uppercase mb-1">ความชื้นในดิน</div>
-                            <div class="text-2xl font-bold text-amber-400" id="val-${nodeId}-soil">--%</div>
-                        </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center shadow-inner" data-help-title="ค่าอุณหภูมิ" data-help="ดึงข้อมูลความร้อนจากเซนเซอร์ของบอร์ดนี้โดยตรง">
+                        <div class="text-[10px] text-slate-400 uppercase mb-1">อุณหภูมิอากาศ</div>
+                        <div class="text-2xl font-bold text-red-400" id="val-${nodeId}-temp">--°C</div>
                     </div>
+                    <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center shadow-inner" data-help-title="ค่าความชื้น" data-help="ดึงข้อมูลความชื้นในอากาศจากเซนเซอร์">
+                        <div class="text-[10px] text-slate-400 uppercase mb-1">ความชื้นอากาศ</div>
+                        <div class="text-2xl font-bold text-[#00f2ff]" id="val-${nodeId}-hum">--%</div>
+                    </div>
+                    <div class="bg-black/40 p-4 rounded-xl border border-white/5 text-center shadow-inner" data-help-title="ค่าความชื้นดิน" data-help="เซนเซอร์วัดค่าความชื้นที่ปักลงในดินของพื้นที่นี้">
+                        <div class="text-[10px] text-slate-400 uppercase mb-1">ความชื้นในดิน</div>
+                        <div class="text-2xl font-bold text-amber-400" id="val-${nodeId}-soil">--%</div>
+                    </div>
+                </div>
 
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">settings</span> ระบบสั่งการอุปกรณ์ (Relays)</h4>
-                        <button onclick="requireAuth(() => saveNodeConfig('${nodeId}', this))" class="bg-white/10 active:scale-95 active:bg-[#00f2ff] active:text-black text-white text-xs px-3 py-1.5 rounded font-bold transition-all">SAVE CONFIG</button>
-                    </div>
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">settings</span> ระบบสั่งการอุปกรณ์ (Relays)</h4>
+                    <button onclick="requireAuth(() => saveNodeConfig('${nodeId}', this))" class="bg-white/10 active:scale-95 active:bg-[#00f2ff] active:text-black text-white text-xs px-3 py-1.5 rounded font-bold transition-all" ${hSave}>SAVE CONFIG</button>
+                </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="relays-${nodeId}">
-                        ${buildRelayLayout(nodeId, 'pump', 'ปั๊มน้ำ (ดิน)', 'water_drop', 'blue-400', 'ดิน < 40%')}
-                        ${buildRelayLayout(nodeId, 'fan', 'พัดลม (อุณหภูมิ)', 'air', 'red-400', 'อุณหภูมิ > 35°C')}
-                        ${buildRelayLayout(nodeId, 'mist', 'พ่นหมอก (ชื้น)', 'cloud_download', '[#00f2ff]', 'ชื้น < 60%')}
-                        ${buildRelayLayout(nodeId, 'light', 'หลอดไฟ (เวลา)', 'lightbulb', 'yellow-400', 'เปิดตามเวลา')}
-                        
-                        ${buildRelayLayout(nodeId, 'extra1', 'สวิตช์สำรอง 1', 'power', 'purple-400', 'กำหนดเอง', true)}
-                        ${buildRelayLayout(nodeId, 'extra2', 'สวิตช์สำรอง 2', 'power', 'purple-400', 'กำหนดเอง', true)}
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="relays-${nodeId}">
+                    ${buildRelayLayout(nodeId, 'pump', 'ปั๊มน้ำ (ดิน)', 'water_drop', 'blue-400', 'ดิน < 40%', hMode, hLogic, hTime, hSwitch)}
+                    ${buildRelayLayout(nodeId, 'fan', 'พัดลม (อุณหภูมิ)', 'air', 'red-400', 'อุณหภูมิ > 35°C', hMode, hLogic, hTime, hSwitch)}
+                </div>
 
-                    <div class="flex justify-between items-center mt-8 mb-4 border-t border-white/5 pt-6">
-                        <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">devices_other</span> Smart Devices & Sensors</h4>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${buildCameraModule(nodeId, 1)}
-                        ${buildCameraModule(nodeId, 2)}
-                        ${buildCameraModule(nodeId, 3, true)}
-                        ${buildCameraModule(nodeId, 4, true)}
-                        ${buildIRModule(nodeId)}
-                        ${buildGasModule(nodeId)}
-                    </div>
-
-                    <div class="mt-8 flex flex-col items-center relative">
-                        <button id="btn-add-${nodeId}" onclick="requireAuth(() => toggleAddMenu('${nodeId}'))" class="bg-black/50 border border-dashed border-white/20 text-slate-400 hover:text-white hover:border-[#00f2ff] px-6 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-inner">
-                            <span class="material-icons-round text-sm text-[#00f2ff]">add_circle</span> เพิ่มอุปกรณ์ในโซนนี้
-                        </button>
-                        
-                        <div id="menu-add-${nodeId}" style="display: none;" class="mt-3 bg-slate-800/95 backdrop-blur p-3 rounded-xl border border-white/10 grid-cols-2 gap-2 shadow-xl z-10 w-full max-w-sm absolute top-12">
-                            <button onclick="addExtraDevice('${nodeId}', 'cam3', 'กล้องวงจรปิดที่ 3')" class="bg-purple-500/20 text-purple-400 px-3 py-2 rounded-lg text-[10px] active:scale-95 active:bg-purple-500 active:text-white font-bold flex items-center gap-1 border border-purple-500/30 transition-all"><span class="material-icons-round text-xs">videocam</span> เพิ่มกล้องที่ 3</button>
-                            <button onclick="addExtraDevice('${nodeId}', 'cam4', 'กล้องวงจรปิดที่ 4')" class="bg-purple-500/20 text-purple-400 px-3 py-2 rounded-lg text-[10px] active:scale-95 active:bg-purple-500 active:text-white font-bold flex items-center gap-1 border border-purple-500/30 transition-all"><span class="material-icons-round text-xs">videocam</span> เพิ่มกล้องที่ 4</button>
-                            <button onclick="addExtraDevice('${nodeId}', 'extra1', 'สวิตช์รีเลย์สำรอง 1')" class="bg-blue-500/20 text-blue-400 px-3 py-2 rounded-lg text-[10px] active:scale-95 active:bg-blue-500 active:text-white font-bold flex items-center gap-1 border border-blue-500/30 transition-all"><span class="material-icons-round text-xs">power</span> รีเลย์สำรอง 1</button>
-                            <button onclick="addExtraDevice('${nodeId}', 'extra2', 'สวิตช์รีเลย์สำรอง 2')" class="bg-blue-500/20 text-blue-400 px-3 py-2 rounded-lg text-[10px] active:scale-95 active:bg-blue-500 active:text-white font-bold flex items-center gap-1 border border-blue-500/30 transition-all"><span class="material-icons-round text-xs">power</span> รีเลย์สำรอง 2</button>
-                        </div>
-                    </div>
-                </div>`;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-            
-            if(currentUser === 'อุบลพันธุ์') buildAdminVisibilityToggles(); 
+                <div class="flex justify-between items-center mt-8 mb-4 border-t border-white/5 pt-6">
+                    <h4 class="text-sm font-bold text-slate-300 flex items-center"><span class="material-icons-round mr-2 text-sm">videocam</span> กล้องวงจรปิด (Camera Stream)</h4>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${buildCameraModule(nodeId, 1)}
+                </div>
+            </div>`;
         }
 
-        function buildRelayLayout(nodeId, type, title, icon, color, placeholder, isExtra = false) {
-            let displayState = isExtra ? (extraDevices[`${nodeId}-${type}`] ? 'block' : 'none') : (hiddenRelays[`${nodeId}-${type}`] ? 'none' : 'block');
-            let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${type}')` : `hideRelayCard('${nodeId}', '${type}')`;
-            
+        function buildRelayLayout(nodeId, type, title, icon, color, placeholder, hMode, hLogic, hTime, hSwitch) {
             return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative hover:border-white/20 transition-all shadow-md" id="card-${nodeId}-${type}" style="display: ${displayState};">
-                <button onclick="requireAuth(() => ${closeAction})" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 z-10"><span class="material-icons-round text-sm">close</span></button>
+            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative hover:border-white/20 transition-all shadow-md">
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-icons-round text-${color}">${icon}</span>
                     <span class="font-bold text-xs text-white">${title}</span>
                 </div>
                 <div class="space-y-2 mb-3">
-                    <select id="${nodeId}-${type}-mode" onfocus="checkFocus(this)" class="config-input bg-black/50 text-[10px]"><option value="auto">MODE: AUTO</option><option value="manual">MODE: MANUAL</option></select>
-                    <input type="text" id="${nodeId}-${type}-logic" placeholder="เงื่อนไข: ${placeholder}" onfocus="checkFocus(this)" class="config-input text-[10px]">
-                    <div class="flex gap-1"><input type="time" id="${nodeId}-${type}-timeStart" onfocus="checkFocus(this)" class="config-input text-[10px]" title="เวลาเริ่ม"><input type="time" id="${nodeId}-${type}-timeEnd" onfocus="checkFocus(this)" class="config-input text-[10px]" title="เวลาหยุด"></div>
-                    <input type="number" id="${nodeId}-${type}-dur" placeholder="ระยะเวลา (นาที)" onfocus="checkFocus(this)" class="config-input text-[10px]">
-                    <select id="${nodeId}-${type}-dayMode" onfocus="checkFocus(this)" class="config-input text-[10px]"><option value="all">ทำงานทุกวัน (All Days)</option></select>
+                    <select id="${nodeId}-${type}-mode" onfocus="checkFocus(this)" class="config-input bg-black/50 text-[10px]" ${hMode}><option value="auto">MODE: AUTO</option><option value="manual">MODE: MANUAL</option></select>
+                    <input type="text" id="${nodeId}-${type}-logic" placeholder="เงื่อนไข: ${placeholder}" onfocus="checkFocus(this)" class="config-input text-[10px]" ${hLogic}>
+                    <div class="flex gap-1" ${hTime}>
+                        <input type="time" id="${nodeId}-${type}-timeStart" onfocus="checkFocus(this)" class="config-input text-[10px]">
+                        <input type="time" id="${nodeId}-${type}-timeEnd" onfocus="checkFocus(this)" class="config-input text-[10px]">
+                    </div>
                 </div>
-                <div class="flex justify-between items-center bg-black/40 p-2 rounded mt-3 border border-white/5">
+                <div class="flex justify-between items-center bg-black/40 p-2 rounded mt-3 border border-white/5" ${hSwitch}>
                     <span class="text-[10px] text-slate-400">สวิตช์แมนนวล</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="switch-${nodeId}-${type}" onchange="checkToggle(this, '${nodeId}', '${type}')" class="sr-only peer">
@@ -422,14 +399,14 @@
             </div>`;
         }
         
-        function buildCameraModule(nodeId, index, isExtra = false) {
+        function buildCameraModule(nodeId, index) {
             let typeId = `cam${index}`;
-            let displayState = isExtra ? (extraDevices[`${nodeId}-${typeId}`] ? 'flex' : 'none') : (hiddenRelays[`${nodeId}-${typeId}`] ? 'none' : 'flex');
-            let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${typeId}')` : `hideRelayCard('${nodeId}', '${typeId}')`;
+            const hCamCtrl = `data-help-title="ปุ่มคุมกล้อง (PTZ)" data-help="กดเพื่อสั่งให้กล้องหันไปทิศทางที่ต้องการ (ทำงานเฉพาะกล้องรุ่นที่รองรับมอเตอร์หมุน)"`;
+            const hCamRec = `data-help-title="ดาวน์โหลดคลิป" data-help="คำสั่งดึงไฟล์วิดีโอย้อนหลังลงมาที่อุปกรณ์ของคุณ (ดึงจาก MicroSD Card ภายในกล้อง)"`;
+            const hCamURL = `data-help-title="RTSP URL" data-help="ที่อยู่ลิงก์ส่วนตัวของกล้อง (สำหรับดึงภาพ) เพื่อความปลอดภัย ห้ามเปิดเผยให้ผู้อื่นทราบ"`;
 
             return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex-col justify-between cam-container" id="card-${nodeId}-${typeId}" style="display: ${displayState};">
-                <button onclick="requireAuth(() => ${closeAction})" class="absolute top-2 right-2 text-slate-500 hover:text-red-400 z-10"><span class="material-icons-round text-sm">close</span></button>
+            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex-col justify-between cam-container">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2 flex-1">
                         <span class="material-icons-round text-purple-400">videocam</span>
@@ -438,115 +415,102 @@
                     </div>
                 </div>
                 
-                <div class="w-full h-28 bg-black/80 rounded-lg flex flex-col items-center justify-center relative border border-dashed border-slate-600 mb-3 overflow-hidden">
+                <div class="w-full h-36 bg-black/80 rounded-lg flex flex-col items-center justify-center relative border border-dashed border-slate-600 mb-3 overflow-hidden">
                     <div class="locked-overlay text-red-400" id="cam-lock-${nodeId}-${index}">
                         <span class="material-icons-round text-3xl mb-1">lock</span>
                         <span class="text-[10px] font-bold px-4 leading-relaxed">กรุณาลงชื่อเข้าใช้<br>เพื่อดูภาพและคุมกล้อง</span>
                     </div>
                     <span class="material-icons-round text-3xl opacity-40 text-slate-500 mb-1">visibility</span>
-                    <span class="text-[8px] text-slate-500 font-mono">STREAM LIVE</span>
+                    <span class="text-[8px] text-slate-500 font-mono">LIVE FEED AREA</span>
                 </div>
                 
                 <div class="grid grid-cols-5 gap-1.5 mb-3 px-2">
                     <div></div>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'เงยกล้องขึ้น')"><span class="material-icons-round text-base">arrow_drop_up</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'เงยกล้องขึ้น')" ${hCamCtrl}><span class="material-icons-round text-base">arrow_drop_up</span></button>
                     <div></div>
                     <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ถ่ายภาพนิ่ง')" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-base">camera_alt</span></button>
                     
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปซ้าย')"><span class="material-icons-round text-base">arrow_left</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'ก้มกล้องลง')"><span class="material-icons-round text-base">arrow_drop_down</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปขวา')"><span class="material-icons-round text-base">arrow_right</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ดาวน์โหลดคลิป')" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-base">file_download</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปซ้าย')" ${hCamCtrl}><span class="material-icons-round text-base">arrow_left</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'ก้มกล้องลง')" ${hCamCtrl}><span class="material-icons-round text-base">arrow_drop_down</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปขวา')" ${hCamCtrl}><span class="material-icons-round text-base">arrow_right</span></button>
+                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ดาวน์โหลดคลิป')" ${hCamRec}><span class="material-icons-round text-base">file_download</span></button>
                 </div>
                 
                 <div class="flex justify-between items-center bg-black/40 p-1.5 rounded border border-white/5 mt-auto">
-                    <input type="text" placeholder="RTSP URL..." class="config-input text-[10px] w-full bg-transparent border-none" disabled>
+                    <input type="text" placeholder="RTSP IP:PORT..." class="config-input text-[10px] w-full bg-transparent border-none" disabled ${hCamURL}>
                 </div>
             </div>`;
         }
 
-        function buildIRModule(nodeId) {
-            return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative flex flex-col justify-between shadow-lg">
-                <div class="flex items-center gap-2 mb-3"><span class="material-icons-round text-teal-400">ac_unit</span><span class="font-bold text-xs text-white">ควบคุมแอร์ (IR Node)</span></div>
-                <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-lg mb-3 border border-white/5">
-                    <div class="text-center w-1/2 border-r border-white/10">
-                        <div class="text-[9px] text-slate-400 uppercase mb-0.5">อุณหภูมิ</div>
-                        <div class="text-xl font-bold flex items-center justify-center gap-1.5">
-                            <button onclick="requireAuth(() => {})" class="text-slate-500 active:scale-90 active:text-[#00f2ff] transition-all"><span class="material-icons-round text-base">remove_circle</span></button>
-                            <span class="font-mono text-sm">25°C</span>
-                            <button onclick="requireAuth(() => {})" class="text-slate-500 active:scale-90 active:text-red-400 transition-all"><span class="material-icons-round text-base">add_circle</span></button>
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-1 w-1/2 pl-3">
-                        <button onclick="requireAuth(() => pushLog('ส่งคำสั่ง IR: เปิดแอร์'))" class="w-full bg-green-500/10 text-green-400 py-1 rounded text-[10px] font-bold border border-green-500/20 active:scale-95 active:bg-green-500 active:text-white transition-all duration-75">เปิด</button>
-                        <button onclick="requireAuth(() => pushLog('ส่งคำสั่ง IR: ปิดแอร์'))" class="w-full bg-red-500/10 text-red-400 py-1 rounded text-[10px] font-bold border border-red-500/20 active:scale-95 active:bg-red-500 active:text-white transition-all duration-75">ปิด</button>
-                    </div>
-                </div>
-                <div class="flex gap-1 mt-auto">
-                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>โหมด: COOL</option></select>
-                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>พัดลม: AUTO</option></select>
-                </div>
-            </div>`;
-        }
-
-        function buildGasModule(nodeId) {
-            return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative shadow-lg flex flex-col justify-between">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="material-icons-round text-yellow-500">local_fire_department</span>
-                    <span class="font-bold text-xs text-white">ควัน & ก๊าซ (MQ-2)</span>
-                </div>
-                <div class="flex flex-col items-center justify-center flex-1 bg-black/40 rounded-lg border border-white/5 py-4">
-                    <div class="text-[10px] text-slate-400 uppercase mb-1">ระดับความเข้มข้น</div>
-                    <div class="text-3xl font-bold text-yellow-500 font-mono flex items-end gap-1" id="val-${nodeId}-gas">
-                        0 <span class="text-[10px] text-slate-500 mb-1">ppm</span>
-                    </div>
-                    <div class="mt-3 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-[9px] font-bold flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> สถานะปกติ
-                    </div>
-                </div>
-            </div>`;
-        }
-function buildAdminVisibilityToggles() {
-            const container = document.getElementById('visibility-toggles-container');
-            if(!container) return;
+        // --- Core Application Logic ---
+        function generateNodePlaceholders(visData) {
+            const container = document.getElementById('dynamic-farm-container');
+            const personalContainer = document.getElementById('personal-user-board-container');
             container.innerHTML = '';
-            ALL_NODES.forEach(n => {
-                let isChecked = (globalVisibility[n] === true || globalVisibility[n] === "true") ? "checked" : "";
-                container.insertAdjacentHTML('beforeend', `
-                <div class="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5 shadow-md">
-                    <div>
-                        <div class="text-[10px] font-bold text-[#00f2ff] uppercase">${n}</div>
-                        <div class="text-[9px] text-slate-400" id="vis-label-${n}">โหลดข้อมูล...</div>
+            personalContainer.innerHTML = '';
+            helpModeEnabled = false; // Reset
+
+            // 1. วาดบอร์ดส่วนกลาง (Node 1-4)
+            ALL_NODES.forEach(nodeId => {
+                let defaultName = nodeId === 'node1' ? 'บ้านเรนะ' : (nodeId === 'node2' ? 'สำนักงาน' : `ลูกข่าย ${nodeId.replace('node','')}`);
+                let isVisible = false;
+                
+                if (currentUser === 'อุบลพันธุ์') isVisible = true;
+                else isVisible = (visData && (visData[nodeId] === true || visData[nodeId] === "true"));
+                
+                if (isVisible) {
+                    container.insertAdjacentHTML('beforeend', buildBoardHTML(nodeId, defaultName, false));
+                }
+            });
+            
+            // 2. วาดบอร์ดส่วนตัวให้ผู้ใช้งานแต่ละคน (ถ้าล็อกอินและไม่ใช่แอดมิน)
+            if (currentUser && currentUser !== 'อุบลพันธุ์') {
+                const pNodeId = `node_user_${currentUser}`;
+                personalContainer.insertAdjacentHTML('beforeend', `
+                    <div class="mb-4 mt-8 flex items-center gap-2 border-b border-white/5 pb-2">
+                        <span class="material-icons-round text-blue-400">person</span>
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider">พื้นที่ส่วนตัวของคุณ</h3>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="vis-chk-${n}" onchange="toggleBoardVisibility('${n}', this.checked)" class="sr-only peer" ${isChecked}>
-                        <div class="w-8 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-purple-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all"></div>
-                    </label>
-                </div>
-                `);
+                ` + buildBoardHTML(pNodeId, "สำหรับผู้ใช้งาน", true));
+            }
+
+            if(currentUser === 'อุบลพันธุ์') {
+                buildAdminVisibilityToggles(); 
+                buildAdminUserDirectory();
+            }
+        }
+
+        function buildAdminUserDirectory() {
+            const btnContainer = document.getElementById('user-dir-buttons');
+            if(!btnContainer) return;
+            btnContainer.innerHTML = '';
+            
+            Object.keys(DEFAULT_USERS).forEach(name => {
+                if(name === 'อุบลพันธุ์') return;
+                const userId = DEFAULT_USERS[name];
+                let btn = `<button onclick="loadUserBoardForAdmin('${userId}', '${name}')" class="bg-blue-500/10 text-blue-400 px-4 py-2 rounded-lg text-[10px] font-bold border border-blue-500/20 active:bg-blue-500 active:text-white transition-all">ดึงข้อมูล: ${name}</button>`;
+                btnContainer.insertAdjacentHTML('beforeend', btn);
             });
         }
 
-        function toggleBoardVisibility(nodeId, isVisible) {
-            globalVisibility[nodeId] = isVisible; // อัปเดตฝั่งตัวเองทันที
-            let payload = {}; payload[nodeId] = isVisible;
-            fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`, { method: "PATCH", body: JSON.stringify(payload) })
-                .then(() => {
-                    let statusText = isVisible ? 'เปิดให้ทุกคนเห็น' : 'ซ่อนเป็นส่วนตัว';
-                    pushLog(`เปลี่ยนสิทธิ์การมองเห็นบอร์ด [${nodeId}] เป็น: ${statusText}`);
-                    showToast(`อัปเดตสิทธิ์ ${nodeId} แล้ว!`);
-                    
-                    const badgeEl = document.getElementById(`vis-badge-${nodeId}`);
-                    if(badgeEl) {
-                        if (isVisible) {
-                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
-                        } else {
-                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
-                        }
-                    }
-                });
+        function loadUserBoardForAdmin(userId, displayName) {
+            const container = document.getElementById('admin-viewing-user-board');
+            const pNodeId = `node_user_${userId}`;
+            adminViewingUserId = pNodeId;
+            
+            container.innerHTML = `
+                <div class="mb-4 flex items-center gap-2">
+                    <span class="material-icons-round text-blue-400">screen_search_desktop</span>
+                    <h3 class="text-sm font-bold text-white">ตรวจสอบบอร์ดของ: <span class="text-[#00f2ff]">${displayName}</span></h3>
+                </div>
+            ` + buildBoardHTML(pNodeId, "สำหรับผู้ใช้งาน", false);
+            
+            // ปลดล็อคกล้องในโหมด Admin View
+            const lock = document.getElementById(`cam-lock-${pNodeId}-1`);
+            if(lock) lock.style.display = 'none';
+            
+            showToast(`กำลังโหลดข้อมูลบอร์ดของ ${displayName}...`, "Admin Mode", "sync");
+            pollFirebaseData(); // ดึงข้อมูลใหม่เพื่อถมใส่ UI ทันที
         }
 
         function fetchWeatherData(lat, lon) {
@@ -560,13 +524,6 @@ function buildAdminVisibilityToggles() {
                     document.getElementById('w-cloud').innerText = data.weather[0].description;
                     document.getElementById('w-wind').innerText = `${data.wind.speed} m/s`;
                 });
-            fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`)
-                .then(res => res.json())
-                .then(data => {
-                    const pm25 = data.list[0].components.pm2_5;
-                    document.getElementById('w-pm25').innerText = `${pm25} µg/m³`;
-                    if(pm25 > 50) document.getElementById('w-pm25').classList.add('text-red-500');
-                });
         }
 
         function initLocationAndWeather() {
@@ -577,21 +534,32 @@ function buildAdminVisibilityToggles() {
                     (pos) => fetchWeatherData(pos.coords.latitude, pos.coords.longitude),
                     (err) => fetchWeatherData(fallbackLat, fallbackLon) 
                 );
-            } else {
-                fetchWeatherData(fallbackLat, fallbackLon);
-            }
+            } else { fetchWeatherData(fallbackLat, fallbackLon); }
         }
 
         function requireAuth(allowedAction) {
             if (currentUser) { allowedAction(); } 
-            else { showToast("ไม่มีสิทธิ์เข้าถึง: กรุณาล็อกอินตามสิทธิ์ หากไม่มีบัญชีติดต่อผู้ดูแลระบบ"); }
+            else { showToast("กรุณาลงชื่อเข้าใช้งานตามสิทธิ์ หากไม่มีบัญชีติดต่อผู้ดูแลระบบ", "ไม่มีสิทธิ์เข้าถึง", "gpp_maybe", true); }
         }
 
-        function showToast(msg) {
+        function showToast(msg, title="ข้อมูล", icon="info", isError=false) {
             const toast = document.getElementById("toast");
             document.getElementById("toast-msg").innerText = msg;
-            toast.className = "show flex items-center gap-2 justify-center";
-            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 4000);
+            document.getElementById("toast-title").innerText = title;
+            document.getElementById("toast-icon").innerText = icon;
+            
+            if(isError) {
+                toast.classList.add("error-toast");
+                document.getElementById("toast-icon").classList.replace("text-[#00f2ff]", "text-white");
+                document.getElementById("toast-title").classList.replace("text-[#00f2ff]", "text-white");
+            } else {
+                toast.classList.remove("error-toast");
+                document.getElementById("toast-icon").classList.replace("text-white", "text-[#00f2ff]");
+                document.getElementById("toast-title").classList.replace("text-white", "text-[#00f2ff]");
+            }
+            
+            toast.classList.add("show");
+            setTimeout(() => { toast.classList.remove("show"); }, 4000);
         }
 
         function openLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
@@ -600,7 +568,7 @@ function buildAdminVisibilityToggles() {
         function doLogin() {
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
-            if(!user || !pass) { showToast("กรุณากรอกข้อมูลให้ครบถ้วน"); return; }
+            if(!user || !pass) { showToast("กรุณากรอกข้อมูลให้ครบถ้วน", "ข้อผิดพลาด", "warning", true); return; }
 
             fetch(`${FIREBASE_URL}/users/${user}.json?_=${Date.now()}`)
                 .then(res => res.json())
@@ -610,26 +578,28 @@ function buildAdminVisibilityToggles() {
                         currentUser = user;
                         closeLogin();
                         updateDashboardSkins();
-                        generateNodePlaceholders(globalVisibility); // สร้างโครงสร้าง HTML ตามสิทธิ์ใหม่ทันที
+                        generateNodePlaceholders(globalVisibility); 
                         pollFirebaseData();
                         pushLog("เข้าสู่ระบบสำนักงานสำเร็จ");
-                        showToast(`สิทธิ์การเข้าใช้งานโมดูลของ '${user}' เปิดทำงานแล้ว`);
+                        showToast(`สิทธิ์การเข้าใช้งานของ '${user}' เปิดทำงานแล้ว`, "เข้าสู่ระบบสำเร็จ", "check_circle");
                     } else {
-                        showToast("ข้อมูลรหัสผ่านหรือสิทธิ์ผู้ใช้ไม่ถูกต้อง");
+                        showToast("ข้อมูลรหัสผ่านหรือสิทธิ์ผู้ใช้ไม่ถูกต้อง", "ไม่สามารถเข้าสู่ระบบ", "error", true);
                     }
-                }).catch(() => { showToast("เกิดข้อผิดพลาดในการเชื่อมต่อสิทธิ์ความปลอดภัย"); });
+                }).catch(() => { showToast("เกิดข้อผิดพลาดในการเชื่อมต่อ", "Network Error", "wifi_off", true); });
         }
 
         function doLogout() {
             pushLog("ลงชื่อออกจากระบบควบคุม");
             sessionStorage.removeItem('currentUser');
             currentUser = null;
+            adminViewingUserId = null;
             updateDashboardSkins();
-            generateNodePlaceholders(globalVisibility); // รื้อโครงสร้าง HTML ทิ้งทันทีสำหรับบอร์ดที่ถูกซ่อน
+            generateNodePlaceholders(globalVisibility);
             pollFirebaseData();
-            showToast("ลงชื่อออกจากระบบความปลอดภัยแล้ว");
+            showToast("ระบบความปลอดภัยถูกปิดการเข้าถึงแล้ว", "ลงชื่อออกสำเร็จ", "lock");
         }
-       function pushLog(actionText) {
+
+        function pushLog(actionText) {
             if (!currentUser) return;
             const timeStamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
             const payload = { timestamp: timeStamp, user: currentUser, action: actionText };
@@ -638,22 +608,22 @@ function buildAdminVisibilityToggles() {
 
         function changePassword() {
             const newPass = document.getElementById('new-password').value.trim();
-            if(!newPass) { showToast("กรุณากรอกรหัสใหม่ที่ต้องการเปลี่ยน"); return; }
+            if(!newPass) { showToast("กรุณากรอกรหัสใหม่ที่ต้องการเปลี่ยน", "ข้อผิดพลาด", "warning", true); return; }
             let payload = {}; payload[currentUser] = newPass;
             fetch(`${FIREBASE_URL}/users.json`, { method: 'PATCH', body: JSON.stringify(payload) })
                 .then(() => {
-                    pushLog(`เปลี่ยนรหัสผ่านเข้าใช้งานระบบใหม่`);
-                    showToast("อัปเดตรหัสผ่านใหม่เข้าชั้นความปลอดภัยเสร็จสิ้น!");
+                    pushLog(`เปลี่ยนรหัสผ่านส่วนตัวในระบบใหม่`);
+                    showToast("อัปเดตรหัสผ่านเข้าชั้นความปลอดภัยเสร็จสิ้น!", "สำเร็จ", "verified_user");
                     document.getElementById('new-password').value = "";
                 });
         }
-
         function updateDashboardSkins() {
             const bLogin = document.getElementById('btn-login');
             const userActions = document.getElementById('user-actions');
             const profile = document.getElementById('user-profile');
-            const adminCard = document.getElementById('admin-log-card');
+            const adminLogCard = document.getElementById('admin-log-card');
             const adminVisCard = document.getElementById('admin-visibility-card');
+            const adminDirCard = document.getElementById('admin-user-directory-card');
 
             if (currentUser) {
                 bLogin.style.display = 'none';
@@ -661,37 +631,152 @@ function buildAdminVisibilityToggles() {
                 profile.style.display = 'flex';
                 document.getElementById('current-user-name').innerText = currentUser;
 
-                ALL_NODES.forEach(n => {
-                    for(let i=1; i<=4; i++) {
-                        const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        if(lock) lock.style.display = 'none'; 
-                    }
+                // ปลดล็อคกล้อง
+                let nodesToUnlock = [...ALL_NODES];
+                if(currentUser !== 'อุบลพันธุ์') nodesToUnlock.push(`node_user_${currentUser}`);
+                
+                nodesToUnlock.forEach(n => {
+                    const lock = document.getElementById(`cam-lock-${n}-1`);
+                    if(lock) lock.style.display = 'none'; 
                 });
 
                 if (currentUser === "อุบลพันธุ์") {
-                    adminCard.classList.remove('hidden');
+                    adminLogCard.classList.remove('hidden');
                     adminVisCard.classList.remove('hidden');
+                    adminDirCard.classList.remove('hidden');
                     pollSystemLogs();
                 } else {
-                    adminCard.classList.add('hidden');
+                    adminLogCard.classList.add('hidden');
                     adminVisCard.classList.add('hidden');
+                    adminDirCard.classList.add('hidden');
                 }
             } else {
                 bLogin.style.display = 'flex';
                 userActions.style.display = 'none';
                 profile.style.display = 'none';
-                adminCard.classList.add('hidden');
+                adminLogCard.classList.add('hidden');
                 adminVisCard.classList.add('hidden');
-
-                ALL_NODES.forEach(n => {
-                    for(let i=1; i<=4; i++) {
-                        const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        if(lock) lock.style.display = 'flex'; 
-                    }
-                });
+                adminDirCard.classList.add('hidden');
+                document.getElementById('admin-viewing-user-board').innerHTML = ''; // เคลียร์บอร์ดถ้าค้างอยู่
             }
         }
 
+        function buildAdminVisibilityToggles() {
+            const container = document.getElementById('visibility-toggles-container');
+            if(!container) return;
+            container.innerHTML = '';
+            ALL_NODES.forEach(n => {
+                let isChecked = (globalVisibility[n] === true || globalVisibility[n] === "true") ? "checked" : "";
+                container.insertAdjacentHTML('beforeend', `
+                <div class="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5 shadow-md">
+                    <div>
+                        <div class="text-[10px] font-bold text-[#00f2ff] uppercase">${n}</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="vis-chk-${n}" onchange="toggleBoardVisibility('${n}', this.checked)" class="sr-only peer" ${isChecked}>
+                        <div class="w-8 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-purple-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all"></div>
+                    </label>
+                </div>
+                `);
+            });
+        }
+
+        function toggleBoardVisibility(nodeId, isVisible) {
+            globalVisibility[nodeId] = isVisible; 
+            let payload = {}; payload[nodeId] = isVisible;
+            fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`, { method: "PATCH", body: JSON.stringify(payload) })
+                .then(() => {
+                    let statusText = isVisible ? 'เปิดให้ทุกคนเห็น' : 'ซ่อนเป็นส่วนตัว';
+                    pushLog(`เปลี่ยนสิทธิ์การมองเห็นส่วนกลางบอร์ด [${nodeId}] เป็น: ${statusText}`);
+                    showToast(`อัปเดตสิทธิ์ ${nodeId} เรียบร้อย!`, "อัปเดตสิทธิ์", "security");
+                    
+                    const badgeEl = document.getElementById(`vis-badge-${nodeId}`);
+                    if(badgeEl) {
+                        if (isVisible) badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
+                        else badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
+                    }
+                });
+        }
+
+        function pollFirebaseData() {
+            fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
+                if (!visData) visData = { node1: true, node2: true, node3: false, node4: false };
+                
+                let visibilityChanged = false;
+                ALL_NODES.forEach(n => {
+                    let oldVal = (globalVisibility[n] === true || globalVisibility[n] === "true");
+                    let newVal = (visData[n] === true || visData[n] === "true");
+                    if (oldVal !== newVal) visibilityChanged = true;
+                });
+
+                globalVisibility = visData;
+                if (visibilityChanged) generateNodePlaceholders(globalVisibility);
+
+                ALL_NODES.forEach(n => {
+                    const badgeEl = document.getElementById(`vis-badge-${n}`);
+                    const chk = document.getElementById(`vis-chk-${n}`);
+                    if(badgeEl && currentUser === 'อุบลพันธุ์') {
+                        badgeEl.style.display = 'inline-flex';
+                        if (visData[n] === true || visData[n] === "true") badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
+                        else badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
+                    }
+                    if(chk && document.activeElement !== chk && currentUser === 'อุบลพันธุ์') {
+                        chk.checked = (visData[n] === true || visData[n] === "true");
+                    }
+                });
+
+                return fetch(`${FIREBASE_URL}/farm.json?_=${Date.now()}`);
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data) return;
+                
+                // ดึงรายการ Node ที่ต้องอัปเดตตัวเลข (ส่วนกลาง + บอร์ดส่วนตัวคนล็อกอิน + บอร์ดที่แอดมินกำลังส่องดู)
+                let activeNodesToPoll = [...ALL_NODES];
+                if(currentUser && currentUser !== 'อุบลพันธุ์') activeNodesToPoll.push(`node_user_${currentUser}`);
+                if(adminViewingUserId) activeNodesToPoll.push(adminViewingUserId);
+
+                activeNodesToPoll.forEach(nodeId => {
+                    let nodeData = data[nodeId] || {};
+                    
+                    const statusEl = document.getElementById(`status-${nodeId}`);
+                    if(statusEl) statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span> <span class="text-green-400 font-bold">Online</span>`;
+
+                    const nameInput = document.getElementById(`input-name-${nodeId}`);
+                    if(nameInput && document.activeElement !== nameInput && nodeData.name) {
+                        nameInput.value = nodeData.name;
+                    }
+
+                    const tEl = document.getElementById(`val-${nodeId}-temp`);
+                    const hEl = document.getElementById(`val-${nodeId}-hum`);
+                    const sEl = document.getElementById(`val-${nodeId}-soil`);
+                    
+                    if(tEl) tEl.innerText = nodeData.temp != null ? `${nodeData.temp.toFixed(1)}°C` : '--°C';
+                    if(hEl) hEl.innerText = nodeData.hum != null ? `${nodeData.hum.toFixed(1)}%` : '--%';
+                    if(sEl) sEl.innerText = nodeData.soil != null ? `${nodeData.soil}%` : '--%';
+
+                    let conf = nodeData.config || {};
+                    const types = ['pump', 'fan'];
+                    
+                    types.forEach(t => {
+                        const modeSel = document.getElementById(`${nodeId}-${t}-mode`);
+                        const logicInp = document.getElementById(`${nodeId}-${t}-logic`);
+                        const tStart = document.getElementById(`${nodeId}-${t}-timeStart`);
+                        const tEnd = document.getElementById(`${nodeId}-${t}-timeEnd`);
+
+                        if(modeSel && document.activeElement !== modeSel && conf[`${t}_mode`]) modeSel.value = conf[`${t}_mode`];
+                        if(logicInp && document.activeElement !== logicInp && conf[`${t}_logic`]) logicInp.value = conf[`${t}_logic`];
+                        if(tStart && document.activeElement !== tStart && conf[`${t}_timeStart`]) tStart.value = conf[`${t}_timeStart`];
+                        if(tEnd && document.activeElement !== tEnd && conf[`${t}_timeEnd`]) tEnd.value = conf[`${t}_timeEnd`];
+                    });
+
+                    updateSwitchUI(`${nodeId}-pump`, nodeData.pumpState);
+                    updateSwitchUI(`${nodeId}-fan`, nodeData.fanState);
+                });
+                
+                if(currentUser === "อุบลพันธุ์") pollSystemLogs();
+            }).catch(e => console.log("Firebase Sync Loading..."));
+        }
         function pollSystemLogs() {
             if(currentUser !== "อุบลพันธุ์") return;
             fetch(`${FIREBASE_URL}/logs.json?_=${Date.now()}`)
@@ -700,7 +785,6 @@ function buildAdminVisibilityToggles() {
                     const tbody = document.getElementById('log-table-body');
                     if(!logData || !tbody) return;
                     tbody.innerHTML = '';
-                    
                     Object.keys(logData).reverse().forEach(key => {
                         let item = logData[key];
                         let r = `<tr class="hover:bg-white/5 transition-all">
@@ -713,110 +797,7 @@ function buildAdminVisibilityToggles() {
                 });
         }
 
-        function initUsersDB() {
-            fetch(`${FIREBASE_URL}/users.json?_=${Date.now()}`).then(res => res.json()).then(data => {
-                if (!data) fetch(`${FIREBASE_URL}/users.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_USERS) });
-            });
-        }
-
-        function pollFirebaseData() {
-            // ?_=${Date.now()} ป้องกันการจำ Cache จากเบราว์เซอร์
-            fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
-                if (!visData) visData = { node1: true, node2: true, node3: false, node4: false };
-                
-                // ตรวจสอบว่าแอดมินเพิ่งกดยกเลิกสิทธิ์ใครแบบสดๆ หรือไม่
-                let visibilityChanged = false;
-                ALL_NODES.forEach(n => {
-                    let oldVal = (globalVisibility[n] === true || globalVisibility[n] === "true");
-                    let newVal = (visData[n] === true || visData[n] === "true");
-                    if (oldVal !== newVal) visibilityChanged = true;
-                });
-
-                globalVisibility = visData;
-                
-                // ถ้ายกเลิก/เพิ่มสิทธิ์ ให้วาดหน้าจอใหม่ทันที
-                if (visibilityChanged) {
-                    generateNodePlaceholders(globalVisibility);
-                }
-
-                ALL_NODES.forEach(n => {
-                    const badgeEl = document.getElementById(`vis-badge-${n}`);
-                    const chk = document.getElementById(`vis-chk-${n}`);
-                    
-                    if(badgeEl && currentUser === 'อุบลพันธุ์') {
-                        badgeEl.style.display = 'inline-flex';
-                        if (visData[n] === true || visData[n] === "true") {
-                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-green-400">visibility</span><span class="text-[9px] text-green-400 ml-1">สาธารณะ</span>`;
-                        } else {
-                            badgeEl.innerHTML = `<span class="material-icons-round text-[10px] text-red-400">visibility_off</span><span class="text-[9px] text-red-400 ml-1">ซ่อนเป็นส่วนตัว</span>`;
-                        }
-                    }
-
-                    // อัปเดตสวิตช์ในการ์ดแอดมิน
-                    if(chk && document.activeElement !== chk && currentUser === 'อุบลพันธุ์') {
-                        chk.checked = (visData[n] === true || visData[n] === "true");
-                    }
-                });
-
-                // ไปดึงข้อมูลเซนเซอร์ต่อ
-                return fetch(`${FIREBASE_URL}/farm.json?_=${Date.now()}`);
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (!data) return;
-                ALL_NODES.forEach(nodeId => {
-                    let nodeData = data[nodeId] || {};
-                    
-                    const statusEl = document.getElementById(`status-${nodeId}`);
-                    if(statusEl) statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400 mr-2 animate-pulse"></span> <span class="text-green-400 font-bold">Online</span>`;
-
-                    const nameInput = document.getElementById(`input-name-${nodeId}`);
-                    if(nameInput && document.activeElement !== nameInput && nodeData.name) {
-                        nameInput.value = nodeData.name;
-                    }
-                    
-                    const visLabel = document.getElementById(`vis-label-${nodeId}`);
-                    if(visLabel && nodeData.name) visLabel.innerText = nodeData.name;
-
-                    const tEl = document.getElementById(`val-${nodeId}-temp`);
-                    const hEl = document.getElementById(`val-${nodeId}-hum`);
-                    const sEl = document.getElementById(`val-${nodeId}-soil`);
-                    const gasEl = document.getElementById(`val-${nodeId}-gas`);
-                    
-                    if(tEl) tEl.innerText = nodeData.temp != null ? `${nodeData.temp.toFixed(1)}°C` : '--°C';
-                    if(hEl) hEl.innerText = nodeData.hum != null ? `${nodeData.hum.toFixed(1)}%` : '--%';
-                        if(sEl) sEl.innerText = nodeData.soil != null ? `${nodeData.soil}%` : '--%';
-                    if(gasEl) gasEl.innerHTML = `${nodeData.gas != null ? nodeData.gas : 0} <span class="text-[10px] text-slate-500 mb-1">ppm</span>`;
-
-                    let conf = nodeData.config || {};
-                    const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
-                    
-                    types.forEach(t => {
-                        const modeSel = document.getElementById(`${nodeId}-${t}-mode`);
-                        const logicInp = document.getElementById(`${nodeId}-${t}-logic`);
-                        const tStart = document.getElementById(`${nodeId}-${t}-timeStart`);
-                        const tEnd = document.getElementById(`${nodeId}-${t}-timeEnd`);
-                        const durInp = document.getElementById(`${nodeId}-${t}-dur`);
-
-                        if(modeSel && document.activeElement !== modeSel && conf[`${t}_mode`]) modeSel.value = conf[`${t}_mode`];
-                        if(logicInp && document.activeElement !== logicInp && conf[`${t}_logic`]) logicInp.value = conf[`${t}_logic`];
-                        if(tStart && document.activeElement !== tStart && conf[`${t}_timeStart`]) tStart.value = conf[`${t}_timeStart`];
-                        if(tEnd && document.activeElement !== tEnd && conf[`${t}_timeEnd`]) tEnd.value = conf[`${t}_timeEnd`];
-                        if(durInp && document.activeElement !== durInp && conf[`${t}_dur`]) durInp.value = conf[`${t}_dur`];
-                    });
-
-                    updateSwitchUI(`${nodeId}-pump`, nodeData.pumpState);
-                    updateSwitchUI(`${nodeId}-fan`, nodeData.fanState);
-                    updateSwitchUI(`${nodeId}-mist`, nodeData.mistState);
-                    updateSwitchUI(`${nodeId}-light`, nodeData.lightState);
-                    updateSwitchUI(`${nodeId}-extra1`, nodeData.extra1State);
-                    updateSwitchUI(`${nodeId}-extra2`, nodeData.extra2State);
-                });
-                
-                if(currentUser === "อุบลพันธุ์") pollSystemLogs();
-            }).catch(e => console.log("Firebase Sync Loading..."));
-        }
-       function updateNodeName(nodeId, newName) {
+        function updateNodeName(nodeId, newName) {
             let payload = {}; payload[`${nodeId}/name`] = newName;
             fetch(`${FIREBASE_URL}/farm.json`, { method: "PATCH", body: JSON.stringify(payload) })
                 .then(() => pushLog(`เปลี่ยนชื่อระบุโซนอุปกรณ์ ${nodeId} เป็น "${newName}"`));
@@ -840,16 +821,15 @@ function buildAdminVisibilityToggles() {
         }
 
         function saveNodeConfig(nodeId, btnElement) {
-            const types = ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'];
+            const types = ['pump', 'fan'];
             let configPayload = {};
             
             types.forEach(type => {
-                if (document.getElementById(`card-${nodeId}-${type}`)) {
+                if (document.getElementById(`switch-${nodeId}-${type}`)) {
                     configPayload[`${type}_mode`] = document.getElementById(`${nodeId}-${type}-mode`).value;
                     configPayload[`${type}_logic`] = document.getElementById(`${nodeId}-${type}-logic`).value;
                     configPayload[`${type}_timeStart`] = document.getElementById(`${nodeId}-${type}-timeStart`).value;
                     configPayload[`${type}_timeEnd`] = document.getElementById(`${nodeId}-${type}-timeEnd`).value;
-                    configPayload[`${type}_dur`] = document.getElementById(`${nodeId}-${type}-dur`).value;
                 }
             });
 
@@ -859,19 +839,23 @@ function buildAdminVisibilityToggles() {
 
             fetch(`${FIREBASE_URL}/farm.json`, { method: "PATCH", body: JSON.stringify(payload) })
                 .then(() => {
-                    pushLog(`แก้ไขชุดควบคุมตรรกะระบบอัตโนมัติ (Logic Config) ของบอร์ด [${nodeId}]`);
+                    pushLog(`บันทึกชุดควบคุมตรรกะระบบอัตโนมัติ (Logic Config) ของบอร์ด [${nodeId}]`);
                     btnElement.innerText = "บันทึกสำเร็จ!";
                     setTimeout(() => { btnElement.innerText = oldText; }, 2000);
-                }).catch(() => { btnElement.innerText = oldText; showToast("เครือข่ายฐานข้อมูลขัดข้อง"); });
+                }).catch(() => { btnElement.innerText = oldText; showToast("เครือข่ายฐานข้อมูลขัดข้อง", "ข้อผิดพลาด", "error", true); });
         }
 
         // ระบบ Boot เริ่มต้น
         function bootSystem() {
+            // เช็คและสร้าง Users เริ่มต้น
+            fetch(`${FIREBASE_URL}/users.json?_=${Date.now()}`).then(res => res.json()).then(data => {
+                if (!data) fetch(`${FIREBASE_URL}/users.json`, { method: 'PUT', body: JSON.stringify(DEFAULT_USERS) });
+            });
+
             fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
                 globalVisibility = visData || { node1: true, node2: true, node3: false, node4: false };
                 generateNodePlaceholders(globalVisibility);
                 initLocationAndWeather();   
-                initUsersDB();              
                 updateDashboardSkins();     
                 pollFirebaseData();         
                 setInterval(pollFirebaseData, 3000);
@@ -886,4 +870,4 @@ function buildAdminVisibilityToggles() {
         bootSystem();
     </script>
 </body>
-</html> 
+</html>
