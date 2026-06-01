@@ -421,7 +421,8 @@
                 </div>
             </div>`;
         }
-        function buildCameraModule(nodeId, index, isExtra = false) {
+        
+               function buildCameraModule(nodeId, index, isExtra = false) {
             let typeId = `cam${index}`;
             let displayState = isExtra ? (extraDevices[`${nodeId}-${typeId}`] ? 'flex' : 'none') : (hiddenRelays[`${nodeId}-${typeId}`] ? 'none' : 'flex');
             let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${typeId}')` : `hideRelayCard('${nodeId}', '${typeId}')`;
@@ -440,29 +441,31 @@
                 <div class="w-full h-28 bg-black/80 rounded-lg flex flex-col items-center justify-center relative border border-dashed border-slate-600 mb-3 overflow-hidden">
                     <div class="locked-overlay text-red-400" id="cam-lock-${nodeId}-${index}">
                         <span class="material-icons-round text-3xl mb-1">lock</span>
-                        <span class="text-[10px] font-bold px-4 leading-relaxed">กรุณาลงชื่อเข้าใช้<br>เพื่อดูภาพและคุมกล้อง</span>
+                        <span class="text-[10px] font-bold px-4 leading-relaxed">กรุณาลงชื่อเข้าใช้<br>เพื่อดูภาพกล้อง</span>
                     </div>
                     <span class="material-icons-round text-3xl opacity-40 text-slate-500 mb-1">visibility</span>
                     <span class="text-[8px] text-slate-500 font-mono">STREAM LIVE</span>
                 </div>
                 
-                <div class="grid grid-cols-5 gap-1.5 mb-3 px-2">
-                    <div></div>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'เงยกล้องขึ้น')"><span class="material-icons-round text-base">arrow_drop_up</span></button>
-                    <div></div>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ถ่ายภาพนิ่ง')" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-base">camera_alt</span></button>
+                <div id="cam-ctrls-${nodeId}-${index}" class="hidden w-full flex-col gap-3">
+                    <div class="grid grid-cols-5 gap-1.5 px-2">
+                        <div></div>
+                        <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'เงยกล้องขึ้น')"><span class="material-icons-round text-base">arrow_drop_up</span></button>
+                        <div></div>
+                        <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ถ่ายภาพนิ่ง')" title="ถ่ายภาพนิ่ง"><span class="material-icons-round text-base">camera_alt</span></button>
+                        
+                        <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปซ้าย')"><span class="material-icons-round text-base">arrow_left</span></button>
+                        <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'ก้มกล้องลง')"><span class="material-icons-round text-base">arrow_drop_down</span></button>
+                        <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปขวา')"><span class="material-icons-round text-base">arrow_right</span></button>
+                        <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ดาวน์โหลดคลิป')" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-base">file_download</span></button>
+                    </div>
                     
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปซ้าย')"><span class="material-icons-round text-base">arrow_left</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'ก้มกล้องลง')"><span class="material-icons-round text-base">arrow_drop_down</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center transition-colors duration-150" onclick="triggerCamAction(this, 'แพนกล้องไปขวา')"><span class="material-icons-round text-base">arrow_right</span></button>
-                    <button class="bg-white/5 p-1.5 rounded-lg flex justify-center items-center col-span-2 transition-colors duration-150" onclick="triggerCamAction(this, 'ดาวน์โหลดคลิป')" title="ดาวน์โหลดวิดีโอ"><span class="material-icons-round text-base">file_download</span></button>
-                </div>
-                
-                <div class="flex justify-between items-center bg-black/40 p-1.5 rounded border border-white/5 mt-auto">
-                    <input type="text" placeholder="RTSP URL..." class="config-input text-[10px] w-full bg-transparent border-none" disabled>
+                    <div class="flex justify-between items-center bg-black/40 p-1.5 rounded border border-white/5 mt-auto">
+                        <input type="text" placeholder="RTSP URL..." class="config-input text-[10px] w-full bg-transparent border-none" disabled>
+                    </div>
                 </div>
             </div>`;
-        }
+               }
 
         function buildIRModule(nodeId) {
             return `
@@ -647,7 +650,7 @@
                 });
         }
 
-        function updateDashboardSkins() {
+               function updateDashboardSkins() {
             const bLogin = document.getElementById('btn-login');
             const userActions = document.getElementById('user-actions');
             const profile = document.getElementById('user-profile');
@@ -659,13 +662,6 @@
                 userActions.style.display = 'flex';
                 profile.style.display = 'flex';
                 document.getElementById('current-user-name').innerText = currentUser;
-
-                ALL_NODES.forEach(n => {
-                    for(let i=1; i<=4; i++) {
-                        const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        if(lock) lock.style.display = 'none'; 
-                    }
-                });
 
                 if (currentUser === "อุบลพันธุ์") {
                     adminCard.classList.remove('hidden');
@@ -681,15 +677,31 @@
                 profile.style.display = 'none';
                 adminCard.classList.add('hidden');
                 adminVisCard.classList.add('hidden');
-
-                ALL_NODES.forEach(n => {
-                    for(let i=1; i<=4; i++) {
-                        const lock = document.getElementById(`cam-lock-${n}-${i}`);
-                        if(lock) lock.style.display = 'flex'; 
-                    }
-                });
             }
+            
+            // แยกระบบสิทธิ์ของกล้องวงจรปิด
+            ALL_NODES.forEach(n => {
+                for(let i=1; i<=4; i++) {
+                    const lock = document.getElementById(`cam-lock-${n}-${i}`);
+                    const ctrls = document.getElementById(`cam-ctrls-${n}-${i}`);
+                    
+                    // ปลดล็อกหน้าจอกล้องถ้ามีการล็อกอิน (ใครล็อกอินก็ดูจอได้)
+                    if(lock) lock.style.display = currentUser ? 'none' : 'flex'; 
+                    
+                    // แสดงแผงควบคุมกล้อง (ปุ่มหมุน/URL) เฉพาะแอดมินเท่านั้น
+                    if(ctrls) {
+                        if(currentUser === "อุบลพันธุ์") {
+                            ctrls.classList.remove('hidden');
+                            ctrls.classList.add('flex');
+                        } else {
+                            ctrls.classList.remove('flex');
+                            ctrls.classList.add('hidden');
+                        }
+                    }
+                }
+            });
         }
+        
         function pollSystemLogs() {
             if(currentUser !== "อุบลพันธุ์") return;
             fetch(`${FIREBASE_URL}/logs.json?_=${Date.now()}`)
