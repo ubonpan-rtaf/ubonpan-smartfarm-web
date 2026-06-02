@@ -300,7 +300,6 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${buildIRModule(nodeId)}
                         ${buildGasModule(nodeId)}
                     </div>
 
@@ -320,7 +319,8 @@
             
             if(currentUser === 'อุบลพันธุ์') buildAdminVisibilityToggles(); 
         }
-        // --- ส่วนแผงควบคุมสวิตช์ (รวมความละเอียดเดิม + ลอจิกอัจฉริยะ) ---
+
+        // --- ส่วนแผงควบคุมสวิตช์ ---
         function buildRelayLayout(nodeId, type, title, icon, color, placeholder, isExtra = false) {
             let displayState = isExtra ? (extraDevices[`${nodeId}-${type}`] ? 'block' : 'none') : (hiddenRelays[`${nodeId}-${type}`] ? 'none' : 'block');
             let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${type}')` : `hideRelayCard('${nodeId}', '${type}')`;
@@ -363,31 +363,6 @@
                         <input type="checkbox" id="switch-${nodeId}-${type}" onchange="checkToggle(this, '${nodeId}', '${type}')" class="sr-only peer">
                         <div class="w-7 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-${color} after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all"></div>
                     </label>
-                </div>
-            </div>`;
-        }
-
-        function buildIRModule(nodeId) {
-            return `
-            <div class="bg-slate-900/60 border border-white/5 p-4 rounded-xl relative flex flex-col justify-between shadow-lg">
-                <div class="flex items-center gap-2 mb-3"><span class="material-icons-round text-teal-400">ac_unit</span><span class="font-bold text-xs text-white">ควบคุมแอร์ (IR Node)</span></div>
-                <div class="flex items-center justify-between bg-black/40 p-2.5 rounded-lg mb-3 border border-white/5">
-                    <div class="text-center w-1/2 border-r border-white/10">
-                        <div class="text-[9px] text-slate-400 uppercase mb-0.5">อุณหภูมิ</div>
-                        <div class="text-xl font-bold flex items-center justify-center gap-1.5">
-                            <button onclick="requireAuth(() => {})" class="text-slate-500 active:scale-90 active:text-[#00f2ff] transition-all"><span class="material-icons-round text-base">remove_circle</span></button>
-                            <span class="font-mono text-sm">25°C</span>
-                            <button onclick="requireAuth(() => {})" class="text-slate-500 active:scale-90 active:text-red-400 transition-all"><span class="material-icons-round text-base">add_circle</span></button>
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-1 w-1/2 pl-3">
-                        <button onclick="requireAuth(() => pushLog('ส่งคำสั่ง IR: เปิดแอร์'))" class="w-full bg-green-500/10 text-green-400 py-1 rounded text-[10px] font-bold border border-green-500/20 active:scale-95 active:bg-green-500 active:text-white transition-all duration-75">เปิด</button>
-                        <button onclick="requireAuth(() => pushLog('ส่งคำสั่ง IR: ปิดแอร์'))" class="w-full bg-red-500/10 text-red-400 py-1 rounded text-[10px] font-bold border border-red-500/20 active:scale-95 active:bg-red-500 active:text-white transition-all duration-75">ปิด</button>
-                    </div>
-                </div>
-                <div class="flex gap-1 mt-auto">
-                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>โหมด: COOL</option></select>
-                    <select onfocus="checkFocus(this)" class="config-input text-[9px] bg-black/50"><option>พัดลม: AUTO</option></select>
                 </div>
             </div>`;
         }
