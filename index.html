@@ -11,7 +11,6 @@
         :root { --primary: #0ea5e9; --surface: #f8fafc; --accent: #8b5cf6; }
         body { font-family: 'Space Grotesk', sans-serif; background-color: var(--surface); color: #334155; overflow-x: hidden; }
         
-        /* Glass effect for light mode */
         .glass-light { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01); }
         
         .config-input { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; border-radius: 0.5rem; padding: 0.35rem 0.5rem; font-size: 0.75rem; width: 100%; transition: all 0.2s; }
@@ -199,6 +198,7 @@
                 </div>
             </div>
         </div>
+
         <div id="dynamic-farm-container" class="space-y-8 flex-1"></div>
 
         <div id="admin-visibility-card" class="glass-light p-6 rounded-2xl border-t-4 border-t-purple-400 mt-8 hidden">
@@ -238,6 +238,7 @@
         
         let currentUser = sessionStorage.getItem('currentUser'); 
         let hiddenRelays = JSON.parse(localStorage.getItem('hiddenRelays')) || {};
+        let extraDevices = JSON.parse(localStorage.getItem('extraDevices')) || {};
         let globalVisibility = {};
         let currentWeather = { isRaining: false, tempOut: 0, humOut: 0 };
 
@@ -284,7 +285,6 @@
                 }
             });
         }
-
         function changeACTemp(val) { requireAuth(() => { acState.tmp += val; if(acState.tmp < 18) acState.tmp = 18; if(acState.tmp > 30) acState.tmp = 30; updateACUI(); if(acState.pwr) sendACCommand(); }); }
         function setACMode(m) { requireAuth(() => { acState.mod = m; if(!acState.pwr) acState.pwr = 1; updateACUI(); sendACCommand(); }); }
         function cycleACSpeed() { requireAuth(() => { acState.fan = acSpeeds[(acSpeeds.indexOf(acState.fan) + 1) % acSpeeds.length]; updateACUI(); if(acState.pwr) sendACCommand(); }); }
@@ -315,7 +315,6 @@
                 .then(data => {
                     if(data) {
                         const ipEl = document.getElementById('ac-ip');
-                        // แก้ปัญหา IP หาย: อัปเดตเมื่อฐานข้อมูลมี IP และผู้ใช้ไม่ได้กำลังพิมพ์อยู่
                         if(data.ip !== undefined && document.activeElement !== ipEl) {
                             ipEl.value = data.ip;
                         }
@@ -335,7 +334,6 @@
             else { toggleRelay(nodeId, type, el.checked); }
         }
 
-        // ฟังก์ชันใหม่: อัปเดตและบันทึกชื่อบอร์ด
         function updateNodeName(nodeId, name) {
             let payload = {}; payload[`${nodeId}/name`] = name;
             fetch(`${FIREBASE_URL}/farm.json`, { method: "PATCH", body: JSON.stringify(payload) })
@@ -345,11 +343,37 @@
                 });
         }
 
+        // ================= ฟังก์ชันเมนูและอุปกรณ์เสริม (เพิ่มกลับมาตามโค้ดต้นฉบับ) =================
+        function toggleAddMenu(nodeId) {
+            const menu = document.getElementById(`menu-add-${nodeId}`);
+            if(menu) { menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'grid' : 'none'; }
+        }
+
+        function addExtraDevice(nodeId, type, label) {
+            extraDevices[`${nodeId}-${type}`] = true;
+            localStorage.setItem('extraDevices', JSON.stringify(extraDevices));
+            const card = document.getElementById(`card-${nodeId}-${type}`);
+            if(card) card.style.display = 'block';
+            toggleAddMenu(nodeId); 
+            pushLog(`เพิ่มโมดูลเสริม [${label}] เข้าสู่โซน [${nodeId}]`);
+            showToast(`เพิ่ม ${label} สำเร็จ!`);
+        }
+
+        function hideExtraDevice(nodeId, type) {
+            if(confirm('ต้องการนำอุปกรณ์เสริมนี้ออกจากหน้าจอใช่หรือไม่?')) {
+                extraDevices[`${nodeId}-${type}`] = false;
+                localStorage.setItem('extraDevices', JSON.stringify(extraDevices));
+                document.getElementById(`card-${nodeId}-${type}`).style.display = 'none';
+                pushLog(`นำอุปกรณ์เสริม [${type}] ออกจากหน้าจอโซน [${nodeId}]`);
+            }
+        }
+        // ==============================================================================
+
         function restoreHiddenRelays() {
             if (!currentUser) { showToast("กรุณาลงชื่อเข้าใช้งานก่อน"); return; }
-            if(confirm('เรียกคืนอุปกรณ์ที่เคยซ่อนไว้ทั้งหมด?')) {
+            if(confirm('เรียกคืนอุปกรณ์ที่เคยซ่อนไว้ทั้งหมดกลับมาแสดง?')) {
                 localStorage.removeItem('hiddenRelays'); hiddenRelays = {};
-                pushLog('เรียกคืนการแสดงผลอุปกรณ์พื้นฐาน');
+                pushLog('เรียกคืนการแสดงผลอุปกรณ์พื้นฐานทั้งหมด');
                 generateNodePlaceholders(globalVisibility); pollFirebaseData();
                 showToast("เรียกคืนอุปกรณ์สำเร็จ!");
             }
@@ -360,6 +384,7 @@
                 hiddenRelays[`${nodeId}-${type}`] = true;
                 localStorage.setItem('hiddenRelays', JSON.stringify(hiddenRelays));
                 document.getElementById(`card-${nodeId}-${type}`).style.display = 'none';
+                pushLog(`ซ่อนการ์ดคำสั่งควบคุม [${type}] ของบอร์ด [${nodeId}]`);
             }
         }
 
@@ -399,16 +424,26 @@
                         </div>
                     </div>
 
-                    <div class="flex justify-between items-center mb-4">
+                    <div class="flex justify-between items-center mb-4 relative">
                         <h4 class="text-sm font-bold text-slate-700 flex items-center"><span class="material-icons-round mr-2 text-sm text-slate-400">settings</span> ระบบสั่งการอุปกรณ์</h4>
-                        <button onclick="requireAuth(() => saveNodeConfig('${nodeId}', this))" class="bg-slate-100 text-slate-600 hover:bg-sky-500 hover:text-white text-xs px-3 py-1.5 rounded-lg font-bold transition-all border border-slate-200 shadow-sm">SAVE CONFIG</button>
+                        <div class="flex gap-2 relative">
+                            <button onclick="toggleAddMenu('${nodeId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 text-[10px] px-2 py-1.5 rounded-lg font-bold hover:bg-indigo-100 transition-all">+ เพิ่มอุปกรณ์</button>
+                            <button onclick="requireAuth(() => saveNodeConfig('${nodeId}', this))" class="bg-slate-100 text-slate-600 hover:bg-sky-500 hover:text-white text-[10px] px-3 py-1.5 rounded-lg font-bold transition-all border border-slate-200 shadow-sm">SAVE CONFIG</button>
+                            
+                            <div id="menu-add-${nodeId}" style="display:none;" class="absolute top-10 right-0 bg-white border border-slate-200 p-2 rounded-xl shadow-lg z-10 w-48 grid gap-2">
+                                <button onclick="requireAuth(() => addExtraDevice('${nodeId}', 'extra1', 'สวิตช์รีเลย์สำรอง 1'))" class="text-left px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg flex items-center gap-2"><span class="material-icons-round text-sm text-indigo-500">power</span> รีเลย์สำรอง 1</button>
+                                <button onclick="requireAuth(() => addExtraDevice('${nodeId}', 'extra2', 'สวิตช์รีเลย์สำรอง 2'))" class="text-left px-3 py-2 text-[10px] font-bold text-slate-600 hover:bg-slate-50 rounded-lg flex items-center gap-2"><span class="material-icons-round text-sm text-indigo-500">power</span> รีเลย์สำรอง 2</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="relays-${nodeId}">
-                        ${buildRelayLayout(nodeId, 'pump', 'ปั๊มน้ำ (ดิน)', 'water_drop', 'blue-500')}
-                        ${buildRelayLayout(nodeId, 'fan', 'พัดลม (อุณหภูมิ)', 'air', 'red-500')}
-                        ${buildRelayLayout(nodeId, 'mist', 'พ่นหมอก (ชื้น)', 'cloud_download', 'sky-500')}
-                        ${buildRelayLayout(nodeId, 'light', 'หลอดไฟ (เวลา)', 'lightbulb', 'amber-500')}
+                        ${buildRelayLayout(nodeId, 'pump', 'ปั๊มน้ำ (ดิน)', 'water_drop', 'blue-500', false)}
+                        ${buildRelayLayout(nodeId, 'fan', 'พัดลม (อุณหภูมิ)', 'air', 'red-500', false)}
+                        ${buildRelayLayout(nodeId, 'mist', 'พ่นหมอก (ชื้น)', 'cloud_download', 'sky-500', false)}
+                        ${buildRelayLayout(nodeId, 'light', 'หลอดไฟ (เวลา)', 'lightbulb', 'amber-500', false)}
+                        ${buildRelayLayout(nodeId, 'extra1', 'สวิตช์รีเลย์สำรอง 1', 'power', 'indigo-500', true)}
+                        ${buildRelayLayout(nodeId, 'extra2', 'สวิตช์รีเลย์สำรอง 2', 'power', 'indigo-500', true)}
                     </div>
                 </div>`;
                 container.insertAdjacentHTML('beforeend', html);
@@ -416,11 +451,20 @@
             if(currentUser === 'อุบลพันธุ์') buildAdminVisibilityToggles(); 
         }
 
-        function buildRelayLayout(nodeId, type, title, icon, color) {
-            let displayState = hiddenRelays[`${nodeId}-${type}`] ? 'none' : 'block';
+        function buildRelayLayout(nodeId, type, title, icon, color, isExtra) {
+            let displayState = 'block';
+            if (isExtra) {
+                displayState = extraDevices[`${nodeId}-${type}`] ? 'block' : 'none';
+            } else {
+                displayState = hiddenRelays[`${nodeId}-${type}`] ? 'none' : 'block';
+            }
+            
+            let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${type}')` : `hideRelayCard('${nodeId}', '${type}')`;
+            let bgColorCode = color.split('-')[0]; // ตัดคำว่า blue-500 ให้เหลือแค่ blue
+
             return `
             <div class="bg-white border border-slate-200 p-4 rounded-xl relative shadow-sm" id="card-${nodeId}-${type}" style="display: ${displayState};">
-                <button onclick="requireAuth(() => hideRelayCard('${nodeId}', '${type}'))" class="absolute top-2 right-2 text-slate-300 hover:text-red-500"><span class="material-icons-round text-sm">close</span></button>
+                <button onclick="requireAuth(() => ${closeAction})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500"><span class="material-icons-round text-sm">close</span></button>
                 <div class="flex items-center gap-2 mb-3">
                     <span class="material-icons-round text-${color}">${icon}</span>
                     <span class="font-bold text-xs text-slate-700">${title}</span>
@@ -442,13 +486,12 @@
                     <span class="text-[10px] text-slate-500 font-bold">สวิตช์แมนนวล</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="switch-${nodeId}-${type}" onchange="checkToggle(this, '${nodeId}', '${type}')" class="sr-only peer">
-                        <div class="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-${color} after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all shadow-inner"></div>
+                        <div class="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-${bgColorCode}-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all shadow-inner"></div>
                     </label>
                 </div>
             </div>`;
         }
-
-        function buildAdminVisibilityToggles() {
+       function buildAdminVisibilityToggles() {
             const container = document.getElementById('visibility-toggles-container');
             if(!container) return; container.innerHTML = '';
             ALL_NODES.forEach(n => {
@@ -484,31 +527,30 @@
             });
         }
 
-                function initLocationAndWeather() {
-            // แสดงสถานะกำลังโหลดที่แถบด้านบน
+        function initLocationAndWeather() {
             const locEl = document.getElementById('weather-location');
-            if (locEl) {
-                locEl.innerHTML = `<span class="material-icons-round text-xs text-sky-500 animate-spin">sync</span>กำลังค้นหาพิกัด GPS...`;
-            }
+            if (locEl) locEl.innerHTML = `<span class="material-icons-round text-xs text-sky-500 animate-spin">sync</span>กำลังค้นหาพิกัด GPS...`;
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        // ได้พิกัดจริงจากอุปกรณ์ แล้วส่งไปหา API สภาพอากาศ
-                        fetchWeatherData(position.coords.latitude, position.coords.longitude);
-                    },
-                    (error) => {
-                        console.warn("ไม่สามารถดึง GPS ได้: ", error);
-                        // ถ้าผู้ใช้ไม่อนุญาต หรือเบราว์เซอร์บล็อก ให้ใช้พิกัดกรุงเทพฯ เป็นค่าสำรอง
-                        fetchWeatherData(13.7563, 100.5018); 
-                        showToast("เบราว์เซอร์บล็อกการขอตำแหน่ง ใช้พิกัดสำรอง");
-                    },
-                    // *** เพิ่มส่วนนี้เพื่อให้ GPS แม่นยำขึ้น และไม่เอาค่าที่ค้างในแคชมาใช้ ***
+                    (position) => fetchWeatherData(position.coords.latitude, position.coords.longitude),
+                    (error) => { fetchWeatherData(13.7563, 100.5018); showToast("ไม่สามารถดึง GPS ได้ ใช้พิกัดกรุงเทพฯ"); },
                     { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
                 );
-            } else {
-                // กรณีเบราว์เซอร์ไม่รองรับ
-                fetchWeatherData(13.7563, 100.5018);
+            } else { fetchWeatherData(13.7563, 100.5018); }
+        }
+
+        function requireAuth(allowedAction) { if (currentUser) allowedAction(); else showToast("กรุณาล็อกอินเพื่อใช้งาน"); }
+        function showToast(msg) { const t = document.getElementById("toast"); document.getElementById("toast-msg").innerText = msg; t.className = "show flex items-center gap-2 justify-center"; setTimeout(() => t.className = t.className.replace("show", ""), 3000); }
+        function openLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
+        function closeLogin() { document.getElementById('login-modal').classList.add('hidden'); }
+
+        function doLogin() {
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+            fetch(`${FIREBASE_URL}/users/${user}.json`).then(res => res.json()).then(saved => {
+                if (saved === pass) { sessionStorage.setItem('currentUser', user); currentUser = user; closeLogin(); updateDashboardSkins(); generateNodePlaceholders(globalVisibility); pollFirebaseData(); pushLog("เข้าสู่ระบบ"); } 
+                else showToast("รหัสผ่านไม่ถูกต้อง");
             });
         }
         
@@ -547,7 +589,21 @@
             });
         }
 
-        // ================= การแก้ไขข้อมูลรีเฟรชแล้วหายอยู่ตรงนี้ =================
+        // ================= ระบบอัปเดตข้อมูลอัตโนมัติแบบไร้รอยต่อ (Robust Polling) =================
+        function updateInputIfNoFocus(id, value) {
+            const el = document.getElementById(id);
+            if(el && document.activeElement !== el && value !== undefined) {
+                el.value = value;
+            }
+        }
+
+        function updateToggleIfNoFocus(id, state) {
+            const el = document.getElementById(id);
+            if(el && document.activeElement !== el) {
+                el.checked = (state === 1);
+            }
+        }
+
         function pollFirebaseData() {
             fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
                 globalVisibility = visData || { node1: true, node2: true, node3: false, node4: false };
@@ -563,41 +619,28 @@
                     const stat = document.getElementById(`status-${nodeId}`);
                     if(stat) stat.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> <span class="text-green-600 font-bold">Online</span>`;
                     
-                    // ดึงชื่อบอร์ดจากฐานข้อมูลมาแสดง (ถ้าผู้ใช้ไม่ได้กำลังแก้ไขชื่ออยู่)
-                    let nameEl = document.getElementById(`input-name-${nodeId}`);
-                    if (nameEl && document.activeElement !== nameEl && d.name !== undefined) {
-                        nameEl.value = d.name;
-                    }
+                    updateInputIfNoFocus(`input-name-${nodeId}`, d.name);
 
                     ['temp', 'hum', 'soil'].forEach(k => {
                         const el = document.getElementById(`val-${nodeId}-${k}`);
                         if(el) el.innerText = d[k] != null ? `${typeof d[k] === 'number' ? d[k].toFixed(1) : d[k]}${k==='temp'?'°C':'%'}` : '--';
                     });
                     
-                    // ดึงสถานะ Config จากฐานข้อมูลมาใส่กลับเข้า Input ป้องกันข้อมูลหาย
                     let config = d.config || {};
-                    ['pump', 'fan', 'mist', 'light'].forEach(t => {
-                        const sw = document.getElementById(`switch-${nodeId}-${t}`);
-                        if(sw && document.activeElement !== sw) sw.checked = (d[`${t}State`] === 1);
-
-                        let modeEl = document.getElementById(`${nodeId}-${t}-mode`);
-                        if (modeEl && document.activeElement !== modeEl && config[`${t}_mode`]) modeEl.value = config[`${t}_mode`];
-                        
-                        let logicEl = document.getElementById(`${nodeId}-${t}-logic`);
-                        if (logicEl && document.activeElement !== logicEl && config[`${t}_logic`] !== undefined) logicEl.value = config[`${t}_logic`];
-                        
-                        let timeSEl = document.getElementById(`${nodeId}-${t}-timeStart`);
-                        if (timeSEl && document.activeElement !== timeSEl && config[`${t}_timeStart`]) timeSEl.value = config[`${t}_timeStart`];
-                        
-                        let timeEEl = document.getElementById(`${nodeId}-${t}-timeEnd`);
-                        if (timeEEl && document.activeElement !== timeEEl && config[`${t}_timeEnd`]) timeEEl.value = config[`${t}_timeEnd`];
+                    // เพิ่ม extra1 และ extra2 เข้าไปในลูปอัปเดตข้อมูลด้วย
+                    ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'].forEach(t => {
+                        updateToggleIfNoFocus(`switch-${nodeId}-${t}`, d[`${t}State`]);
+                        updateInputIfNoFocus(`${nodeId}-${t}-mode`, config[`${t}_mode`]);
+                        updateInputIfNoFocus(`${nodeId}-${t}-logic`, config[`${t}_logic`]);
+                        updateInputIfNoFocus(`${nodeId}-${t}-timeStart`, config[`${t}_timeStart`]);
+                        updateInputIfNoFocus(`${nodeId}-${t}-timeEnd`, config[`${t}_timeEnd`]);
                     });
                 });
                 if(currentUser === "อุบลพันธุ์") pollSystemLogs();
                 loadACStateFromFirebase(); 
             });
         }
-        // ======================================================================
+        // ====================================================================================
 
         function toggleRelay(nodeId, type, status) {
             let payload = {}; payload[`${nodeId}/${type}State`] = status ? 1 : 0;
@@ -607,7 +650,8 @@
         
         function saveNodeConfig(nodeId, btn) {
             let c = {};
-            ['pump', 'fan', 'mist', 'light'].forEach(t => {
+            // รวม extra1 และ extra2 ให้ถูกส่งไปบันทึกบนฐานข้อมูลด้วย
+            ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'].forEach(t => {
                 if (document.getElementById(`card-${nodeId}-${t}`)) {
                     c[`${t}_mode`] = document.getElementById(`${nodeId}-${t}-mode`).value;
                     c[`${t}_logic`] = document.getElementById(`${nodeId}-${t}-logic`).value;
