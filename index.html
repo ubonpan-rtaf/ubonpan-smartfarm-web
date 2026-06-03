@@ -16,7 +16,7 @@
         
         .config-input { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; border-radius: 0.5rem; padding: 0.35rem 0.5rem; font-size: 0.75rem; width: 100%; transition: all 0.2s; }
         .config-input:focus { outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2); }
-        .node-name-input { background: transparent; border: none; border-bottom: 1px dashed #94a3b8; color: #0f172a; font-weight: bold; font-size: 1.125rem; outline: none; width: auto; max-width: 150px; }
+        .node-name-input { background: transparent; border: none; border-bottom: 1px dashed #94a3b8; color: #0f172a; font-weight: bold; font-size: 1.125rem; outline: none; width: auto; max-width: 150px; transition: all 0.2s;}
         .node-name-input:focus { border-bottom-color: var(--primary); color: var(--primary); }
         
         /* AC Specific Styles */
@@ -238,7 +238,6 @@
         
         let currentUser = sessionStorage.getItem('currentUser'); 
         let hiddenRelays = JSON.parse(localStorage.getItem('hiddenRelays')) || {};
-        let extraDevices = JSON.parse(localStorage.getItem('extraDevices')) || {};
         let globalVisibility = {};
         let currentWeather = { isRaining: false, tempOut: 0, humOut: 0 };
 
@@ -285,6 +284,7 @@
                 }
             });
         }
+
         function changeACTemp(val) { requireAuth(() => { acState.tmp += val; if(acState.tmp < 18) acState.tmp = 18; if(acState.tmp > 30) acState.tmp = 30; updateACUI(); if(acState.pwr) sendACCommand(); }); }
         function setACMode(m) { requireAuth(() => { acState.mod = m; if(!acState.pwr) acState.pwr = 1; updateACUI(); sendACCommand(); }); }
         function cycleACSpeed() { requireAuth(() => { acState.fan = acSpeeds[(acSpeeds.indexOf(acState.fan) + 1) % acSpeeds.length]; updateACUI(); if(acState.pwr) sendACCommand(); }); }
@@ -292,13 +292,12 @@
         function toggleACState(key) { requireAuth(() => { acState[key] = acState[key] ? 0 : 1; updateACUI(); if(acState.pwr) sendACCommand(); }); }
 
         function sendACCommand() {
-            saveACStateToFirebase(); // บันทึกสถานะลง Database
+            saveACStateToFirebase(); 
             const ip = document.getElementById('ac-ip').value.trim();
             if(!ip) { showToast('กรุณาระบุ IP ของกล่องแอร์ก่อนสั่งงาน'); return; }
 
             const url = `http://${ip}/api/ir?brand=${acState.brand}&pwr=${acState.pwr}&tmp=${acState.tmp}&mod=${acState.mod}&fan=${acState.fan}&swv=${acState.swv}&trb=${acState.trb}&slp=${acState.slp}`;
             
-            // ยิงคำสั่งไปที่ ESP32-C3 โดยตรง (ESP32 ต้องมีโค้ด CORS Header ตามที่แก้ให้)
             fetch(url)
                 .then(res => { if(res.ok) pushLog(`สั่งการแอร์: ${acState.pwr ? 'เปิด' : 'ปิด'} โหมด ${acState.mod} (${acState.tmp}°C)`); })
                 .catch(e => showToast("เชื่อมต่อกล่องแอร์ไม่สำเร็จ ตรวจสอบ IP"));
@@ -315,7 +314,11 @@
                 .then(res => res.json())
                 .then(data => {
                     if(data) {
-                        if(data.ip && document.activeElement !== document.getElementById('ac-ip')) document.getElementById('ac-ip').value = data.ip;
+                        const ipEl = document.getElementById('ac-ip');
+                        // แก้ปัญหา IP หาย: อัปเดตเมื่อฐานข้อมูลมี IP และผู้ใช้ไม่ได้กำลังพิมพ์อยู่
+                        if(data.ip !== undefined && document.activeElement !== ipEl) {
+                            ipEl.value = data.ip;
+                        }
                         if(data.state) {
                             acState = data.state;
                             updateACUI();
@@ -330,6 +333,16 @@
         function checkToggle(el, nodeId, type) {
             if (!currentUser) { el.checked = !el.checked; showToast("กรุณาลงชื่อเข้าใช้งานก่อน"); } 
             else { toggleRelay(nodeId, type, el.checked); }
+        }
+
+        // ฟังก์ชันใหม่: อัปเดตและบันทึกชื่อบอร์ด
+        function updateNodeName(nodeId, name) {
+            let payload = {}; payload[`${nodeId}/name`] = name;
+            fetch(`${FIREBASE_URL}/farm.json`, { method: "PATCH", body: JSON.stringify(payload) })
+                .then(() => {
+                    pushLog(`เปลี่ยนชื่อบอร์ด [${nodeId}] เป็น "${name}"`);
+                    showToast("บันทึกชื่อบอร์ดสำเร็จ");
+                });
         }
 
         function restoreHiddenRelays() {
@@ -522,6 +535,7 @@
             });
         }
 
+        // ================= การแก้ไขข้อมูลรีเฟรชแล้วหายอยู่ตรงนี้ =================
         function pollFirebaseData() {
             fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
                 globalVisibility = visData || { node1: true, node2: true, node3: false, node4: false };
@@ -537,20 +551,41 @@
                     const stat = document.getElementById(`status-${nodeId}`);
                     if(stat) stat.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> <span class="text-green-600 font-bold">Online</span>`;
                     
+                    // ดึงชื่อบอร์ดจากฐานข้อมูลมาแสดง (ถ้าผู้ใช้ไม่ได้กำลังแก้ไขชื่ออยู่)
+                    let nameEl = document.getElementById(`input-name-${nodeId}`);
+                    if (nameEl && document.activeElement !== nameEl && d.name !== undefined) {
+                        nameEl.value = d.name;
+                    }
+
                     ['temp', 'hum', 'soil'].forEach(k => {
                         const el = document.getElementById(`val-${nodeId}-${k}`);
                         if(el) el.innerText = d[k] != null ? `${typeof d[k] === 'number' ? d[k].toFixed(1) : d[k]}${k==='temp'?'°C':'%'}` : '--';
                     });
                     
+                    // ดึงสถานะ Config จากฐานข้อมูลมาใส่กลับเข้า Input ป้องกันข้อมูลหาย
+                    let config = d.config || {};
                     ['pump', 'fan', 'mist', 'light'].forEach(t => {
                         const sw = document.getElementById(`switch-${nodeId}-${t}`);
                         if(sw && document.activeElement !== sw) sw.checked = (d[`${t}State`] === 1);
+
+                        let modeEl = document.getElementById(`${nodeId}-${t}-mode`);
+                        if (modeEl && document.activeElement !== modeEl && config[`${t}_mode`]) modeEl.value = config[`${t}_mode`];
+                        
+                        let logicEl = document.getElementById(`${nodeId}-${t}-logic`);
+                        if (logicEl && document.activeElement !== logicEl && config[`${t}_logic`] !== undefined) logicEl.value = config[`${t}_logic`];
+                        
+                        let timeSEl = document.getElementById(`${nodeId}-${t}-timeStart`);
+                        if (timeSEl && document.activeElement !== timeSEl && config[`${t}_timeStart`]) timeSEl.value = config[`${t}_timeStart`];
+                        
+                        let timeEEl = document.getElementById(`${nodeId}-${t}-timeEnd`);
+                        if (timeEEl && document.activeElement !== timeEEl && config[`${t}_timeEnd`]) timeEEl.value = config[`${t}_timeEnd`];
                     });
                 });
                 if(currentUser === "อุบลพันธุ์") pollSystemLogs();
                 loadACStateFromFirebase(); 
             });
         }
+        // ======================================================================
 
         function toggleRelay(nodeId, type, status) {
             let payload = {}; payload[`${nodeId}/${type}State`] = status ? 1 : 0;
