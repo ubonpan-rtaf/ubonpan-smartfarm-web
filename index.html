@@ -484,19 +484,31 @@
             });
         }
 
-        function initLocationAndWeather() { fetchWeatherData(13.8167, 99.8833); }
+                function initLocationAndWeather() {
+            // แสดงสถานะกำลังโหลดที่แถบด้านบน
+            const locEl = document.getElementById('weather-location');
+            if (locEl) {
+                locEl.innerHTML = `<span class="material-icons-round text-xs text-sky-500 animate-spin">sync</span>กำลังค้นหาพิกัด GPS...`;
+            }
 
-        function requireAuth(allowedAction) { if (currentUser) allowedAction(); else showToast("กรุณาล็อกอินเพื่อใช้งาน"); }
-        function showToast(msg) { const t = document.getElementById("toast"); document.getElementById("toast-msg").innerText = msg; t.className = "show flex items-center gap-2 justify-center"; setTimeout(() => t.className = t.className.replace("show", ""), 3000); }
-        function openLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
-        function closeLogin() { document.getElementById('login-modal').classList.add('hidden'); }
-
-        function doLogin() {
-            const user = document.getElementById('login-user').value.trim();
-            const pass = document.getElementById('login-pass').value.trim();
-            fetch(`${FIREBASE_URL}/users/${user}.json`).then(res => res.json()).then(saved => {
-                if (saved === pass) { sessionStorage.setItem('currentUser', user); currentUser = user; closeLogin(); updateDashboardSkins(); generateNodePlaceholders(globalVisibility); pollFirebaseData(); pushLog("เข้าสู่ระบบ"); } 
-                else showToast("รหัสผ่านไม่ถูกต้อง");
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        // ได้พิกัดจริงจากอุปกรณ์ แล้วส่งไปหา API สภาพอากาศ
+                        fetchWeatherData(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        console.warn("ไม่สามารถดึง GPS ได้: ", error);
+                        // ถ้าผู้ใช้ไม่อนุญาต หรือเบราว์เซอร์บล็อก ให้ใช้พิกัดกรุงเทพฯ เป็นค่าสำรอง
+                        fetchWeatherData(13.7563, 100.5018); 
+                        showToast("เบราว์เซอร์บล็อกการขอตำแหน่ง ใช้พิกัดสำรอง");
+                    },
+                    // *** เพิ่มส่วนนี้เพื่อให้ GPS แม่นยำขึ้น และไม่เอาค่าที่ค้างในแคชมาใช้ ***
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                );
+            } else {
+                // กรณีเบราว์เซอร์ไม่รองรับ
+                fetchWeatherData(13.7563, 100.5018);
             });
         }
         
