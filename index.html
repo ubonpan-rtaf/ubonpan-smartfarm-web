@@ -285,6 +285,7 @@
                 }
             });
         }
+
         function changeACTemp(val) { requireAuth(() => { acState.tmp += val; if(acState.tmp < 18) acState.tmp = 18; if(acState.tmp > 30) acState.tmp = 30; updateACUI(); if(acState.pwr) sendACCommand(); }); }
         function setACMode(m) { requireAuth(() => { acState.mod = m; if(!acState.pwr) acState.pwr = 1; updateACUI(); sendACCommand(); }); }
         function cycleACSpeed() { requireAuth(() => { acState.fan = acSpeeds[(acSpeeds.indexOf(acState.fan) + 1) % acSpeeds.length]; updateACUI(); if(acState.pwr) sendACCommand(); }); }
@@ -343,7 +344,6 @@
                 });
         }
 
-        // ================= ฟังก์ชันเมนูและอุปกรณ์เสริม (เพิ่มกลับมาตามโค้ดต้นฉบับ) =================
         function toggleAddMenu(nodeId) {
             const menu = document.getElementById(`menu-add-${nodeId}`);
             if(menu) { menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'grid' : 'none'; }
@@ -367,7 +367,6 @@
                 pushLog(`นำอุปกรณ์เสริม [${type}] ออกจากหน้าจอโซน [${nodeId}]`);
             }
         }
-        // ==============================================================================
 
         function restoreHiddenRelays() {
             if (!currentUser) { showToast("กรุณาลงชื่อเข้าใช้งานก่อน"); return; }
@@ -409,7 +408,7 @@
                         </span>
                     </div>
                     
-                    <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 text-center">
                             <div class="text-[10px] text-rose-500 font-bold uppercase mb-1">อุณหภูมิอากาศ</div>
                             <div class="text-2xl font-bold text-rose-600" id="val-${nodeId}-temp">--°C</div>
@@ -421,6 +420,10 @@
                         <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 text-center">
                             <div class="text-[10px] text-amber-500 font-bold uppercase mb-1">ความชื้นในดิน</div>
                             <div class="text-2xl font-bold text-amber-600" id="val-${nodeId}-soil">--%</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                            <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">ค่าฝุ่น PM 2.5</div>
+                            <div class="text-2xl font-bold text-slate-600" id="val-${nodeId}-pm25">--</div>
                         </div>
                     </div>
 
@@ -460,7 +463,7 @@
             }
             
             let closeAction = isExtra ? `hideExtraDevice('${nodeId}', '${type}')` : `hideRelayCard('${nodeId}', '${type}')`;
-            let bgColorCode = color.split('-')[0]; // ตัดคำว่า blue-500 ให้เหลือแค่ blue
+            let bgColorCode = color.split('-')[0]; 
 
             return `
             <div class="bg-white border border-slate-200 p-4 rounded-xl relative shadow-sm" id="card-${nodeId}-${type}" style="display: ${displayState};">
@@ -490,8 +493,8 @@
                     </label>
                 </div>
             </div>`;
-        }
-       function buildAdminVisibilityToggles() {
+                }
+        function buildAdminVisibilityToggles() {
             const container = document.getElementById('visibility-toggles-container');
             if(!container) return; container.innerHTML = '';
             ALL_NODES.forEach(n => {
@@ -513,19 +516,40 @@
                 .then(() => showToast(`อัปเดตสิทธิ์ ${nodeId} แล้ว!`));
         }
 
+        // ================= แก้ไข API สภาพอากาศและมลพิษ (ดึง 2 ค่าพร้อมกัน) =================
         function fetchWeatherData(lat, lon) {
-            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`).then(res => res.json()).then(data => {
-                document.getElementById('weather-location').innerHTML = `<span class="material-icons-round text-xs text-sky-500">location_on</span>${data.name}, ${data.sys.country}`;
-                document.getElementById('w-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
-                document.getElementById('w-feels').innerText = `${data.main.feels_like.toFixed(1)}°C`;
-                document.getElementById('w-hum').innerText = `${data.main.humidity}%`;
-                document.getElementById('w-cloud').innerText = data.weather[0].description;
-                document.getElementById('w-wind').innerText = `${data.wind.speed} m/s`;
-                currentWeather.isRaining = (data.weather[0].id >= 200 && data.weather[0].id < 600);
-                document.getElementById('w-cloud').style.display = currentWeather.isRaining ? 'none' : 'block';
-                document.getElementById('rain-alert').style.display = currentWeather.isRaining ? 'flex' : 'none';
-            });
+            // 1. ดึงข้อมูลสภาพอากาศทั่วไป
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('weather-location').innerHTML = `<span class="material-icons-round text-xs text-sky-500">location_on</span>${data.name}, ${data.sys.country}`;
+                    document.getElementById('w-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
+                    document.getElementById('w-feels').innerText = `${data.main.feels_like.toFixed(1)}°C`;
+                    document.getElementById('w-hum').innerText = `${data.main.humidity}%`;
+                    document.getElementById('w-cloud').innerText = data.weather[0].description;
+                    document.getElementById('w-wind').innerText = `${data.wind.speed} m/s`;
+                    
+                    currentWeather.isRaining = (data.weather[0].id >= 200 && data.weather[0].id < 600);
+                    document.getElementById('w-cloud').style.display = currentWeather.isRaining ? 'none' : 'block';
+                    document.getElementById('rain-alert').style.display = currentWeather.isRaining ? 'flex' : 'none';
+                });
+
+            // 2. ดึงข้อมูลคุณภาพอากาศ (PM 2.5) 
+            fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.list && data.list.length > 0) {
+                        let pm25 = data.list[0].components.pm2_5;
+                        document.getElementById('w-pm25').innerHTML = `${pm25.toFixed(1)} <span class="text-[10px] font-normal text-slate-400">µg/m³</span>`;
+                    } else {
+                        document.getElementById('w-pm25').innerText = 'N/A';
+                    }
+                }).catch(e => {
+                    console.error("Error fetching air pollution", e);
+                    document.getElementById('w-pm25').innerText = 'Error';
+                });
         }
+        // =======================================================================
 
         function initLocationAndWeather() {
             const locEl = document.getElementById('weather-location');
@@ -589,7 +613,6 @@
             });
         }
 
-        // ================= ระบบอัปเดตข้อมูลอัตโนมัติแบบไร้รอยต่อ (Robust Polling) =================
         function updateInputIfNoFocus(id, value) {
             const el = document.getElementById(id);
             if(el && document.activeElement !== el && value !== undefined) {
@@ -621,13 +644,20 @@
                     
                     updateInputIfNoFocus(`input-name-${nodeId}`, d.name);
 
-                    ['temp', 'hum', 'soil'].forEach(k => {
+                    // อัปเดตข้อมูลเซ็นเซอร์ในบอร์ด (Temp, Hum, Soil, PM2.5) 
+                    ['temp', 'hum', 'soil', 'pm25'].forEach(k => {
                         const el = document.getElementById(`val-${nodeId}-${k}`);
-                        if(el) el.innerText = d[k] != null ? `${typeof d[k] === 'number' ? d[k].toFixed(1) : d[k]}${k==='temp'?'°C':'%'}` : '--';
+                        if(el) {
+                            if (d[k] != null) {
+                                let val = typeof d[k] === 'number' ? d[k].toFixed(1) : d[k];
+                                el.innerText = `${val}${k==='temp'?'°C':(k==='pm25'?'':'%')}`;
+                            } else {
+                                el.innerText = '--';
+                            }
+                        }
                     });
                     
                     let config = d.config || {};
-                    // เพิ่ม extra1 และ extra2 เข้าไปในลูปอัปเดตข้อมูลด้วย
                     ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'].forEach(t => {
                         updateToggleIfNoFocus(`switch-${nodeId}-${t}`, d[`${t}State`]);
                         updateInputIfNoFocus(`${nodeId}-${t}-mode`, config[`${t}_mode`]);
@@ -640,7 +670,6 @@
                 loadACStateFromFirebase(); 
             });
         }
-        // ====================================================================================
 
         function toggleRelay(nodeId, type, status) {
             let payload = {}; payload[`${nodeId}/${type}State`] = status ? 1 : 0;
@@ -650,7 +679,6 @@
         
         function saveNodeConfig(nodeId, btn) {
             let c = {};
-            // รวม extra1 และ extra2 ให้ถูกส่งไปบันทึกบนฐานข้อมูลด้วย
             ['pump', 'fan', 'mist', 'light', 'extra1', 'extra2'].forEach(t => {
                 if (document.getElementById(`card-${nodeId}-${t}`)) {
                     c[`${t}_mode`] = document.getElementById(`${nodeId}-${t}-mode`).value;
