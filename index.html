@@ -140,7 +140,10 @@
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-slate-500 flex items-center bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200" id="status-node_air">
+                        <span class="w-2 h-2 rounded-full bg-slate-400 mr-2"></span> รอเชื่อมต่อแอร์...
+                    </span>
                     <select id="ac-brand" onchange="requireAuth(() => { acState.brand = this.value; saveACStateToFirebase(); updateACUI(); })" onfocus="checkFocus(this)" class="config-input w-24 text-xs font-bold text-sky-600">
                         <option value="HAIER">Haier</option>
                         <option value="DAIKIN">Daikin</option>
@@ -260,12 +263,11 @@
             const modeText = document.getElementById('ac-modeText');
             modeText.innerText = acState.mod;
             modeText.className = `text-[10px] font-bold mt-1 tracking-wide uppercase ${acState.pwr ? 'text-sky-500' : 'text-slate-400'}`;
-
-            const btnPwr = document.getElementById('ac-btnPwr');
+        const btnPwr = document.getElementById('ac-btnPwr');
             if (acState.pwr) { btnPwr.classList.add('active-green'); btnPwr.classList.remove('text-slate-400'); } 
             else { btnPwr.classList.remove('active-green'); btnPwr.classList.add('text-slate-400'); }
 
-      ['COOL', 'DRY', 'FAN'].forEach(m => {
+            ['COOL', 'DRY', 'FAN'].forEach(m => {
                 const btn = document.getElementById('ac-btn' + m.charAt(0) + m.slice(1).toLowerCase());
                 if (acState.mod === m && acState.pwr) { btn.classList.add('active-blue'); btn.classList.remove('text-slate-400'); }
                 else { btn.classList.remove('active-blue'); btn.classList.add('text-slate-400'); }
@@ -306,9 +308,29 @@
             fetch(`${FIREBASE_URL}/farm/node_air.json?_=${Date.now()}`)
                 .then(res => res.json())
                 .then(data => {
-                    if(data && data.state) {
-                        acState = data.state;
-                        updateACUI();
+                    if(data) {
+                        const statAir = document.getElementById('status-node_air');
+                        let isAirOnline = false;
+                        if (data.timestamp) {
+                            isAirOnline = (Date.now() - data.timestamp < 120000); 
+                        } else if (data.state) {
+                            isAirOnline = true; 
+                        }
+
+                        if(statAir) {
+                            if(isAirOnline) {
+                                statAir.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> <span class="text-green-600 font-bold">Online</span>`;
+                                statAir.className = "text-xs flex items-center bg-green-50 px-3 py-1.5 rounded-full border border-green-200 transition-all";
+                            } else {
+                                statAir.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> <span class="text-red-600 font-bold">Offline</span>`;
+                                statAir.className = "text-xs flex items-center bg-red-50 px-3 py-1.5 rounded-full border border-red-200 transition-all shadow-sm";
+                            }
+                        }
+
+                        if(data.state) {
+                            acState = data.state;
+                            updateACUI();
+                        }
                     }
                 });
         }
@@ -382,7 +404,7 @@
                 let isVisible = (currentUser === 'อุบลพันธุ์') ? true : ((visData && (visData[nodeId] === true || visData[nodeId] === "true")) ? true : false);
                 if (!isVisible) return; 
 
-                // HTML แบบใหม่: ตัด PM2.5 ออก และปรับ Grid เป็น 3 ช่อง
+                // HTML แบบใหม่: เพิ่มช่องสำหรับ MQ2 (gas) เป็น 4 ช่อง
                 let html = `
                 <div class="glass-light p-6 md:p-8 rounded-2xl border-t-4 border-t-green-400" id="zone-${nodeId}">
                     <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -395,7 +417,7 @@
                         </span>
                     </div>
                     
-                    <div class="grid grid-cols-3 gap-4 mb-8">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 text-center shadow-sm">
                             <div class="text-[10px] text-rose-500 font-bold uppercase mb-1">อุณหภูมิอากาศ</div>
                             <div class="text-2xl font-bold text-rose-600" id="val-${nodeId}-temp">--°C</div>
@@ -407,6 +429,10 @@
                         <div class="bg-amber-50 p-4 rounded-xl border border-amber-100 text-center shadow-sm">
                             <div class="text-[10px] text-amber-500 font-bold uppercase mb-1">ความชื้นในดิน</div>
                             <div class="text-2xl font-bold text-amber-600" id="val-${nodeId}-soil">--%</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center shadow-sm">
+                            <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">ควัน/ก๊าซ (MQ2)</div>
+                            <div class="text-2xl font-bold text-slate-700" id="val-${nodeId}-gas">-- ppm</div>
                         </div>
                     </div>
 
@@ -494,12 +520,7 @@
             });
         }
 
-        function toggleBoardVisibility(nodeId, isVisible) {
-            let payload = {}; payload[nodeId] = isVisible;
-            fetch(`${FIREBASE_URL}/board_visibility.json`, { method: "PATCH", body: JSON.stringify(payload) })
-                .then(() => showToast(`อัปเดตสิทธิ์ ${nodeId} แล้ว!`));
-        }
-       function fetchWeatherData(lat, lon) {
+        function fetchWeatherData(lat, lon) {
             fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
                 .then(res => res.json())
                 .then(data => {
@@ -529,7 +550,6 @@
                     document.getElementById('w-pm25').innerText = 'Error';
                 });
         }
-
         function initLocationAndWeather() {
             const locEl = document.getElementById('weather-location');
             if (locEl) locEl.innerHTML = `<span class="material-icons-round text-xs text-sky-500 animate-spin">sync</span>กำลังค้นหาพิกัด GPS...`;
@@ -617,14 +637,11 @@
                     let d = data[nodeId] || {};
                     const stat = document.getElementById(`status-${nodeId}`);
                     
-                    // ================= ระบบตรวจสอบสถานะ Online / Offline =================
                     let isOnline = false;
                     if (Object.keys(d).length > 0) {
                         if (d.timestamp) {
-                            // ถ้ามี timestamp จากบอร์ด จะตรวจสอบว่าขาดการติดต่อไปเกิน 120 วินาทีหรือไม่
                             isOnline = (Date.now() - d.timestamp < 120000); 
                         } else {
-                            // ถ้าบอร์ดไม่ได้ส่ง timestamp ถือว่า Online ไว้ก่อนตราบใดที่มีข้อมูลอยู่ในฐานข้อมูล
                             isOnline = true; 
                         }
                     }
@@ -638,17 +655,18 @@
                             stat.className = "text-xs flex items-center bg-red-50 px-3 py-1.5 rounded-full border border-red-200 transition-all shadow-sm";
                         }
                     }
-                    // ================================================================
 
                     updateInputIfNoFocus(`input-name-${nodeId}`, d.name);
 
-                    // อัปเดตข้อมูลเซ็นเซอร์ (ตัด PM2.5 ออก)
-                    ['temp', 'hum', 'soil'].forEach(k => {
+                    // อัปเดตข้อมูลเซ็นเซอร์ให้รองรับ Temp, Hum, Soil และ Gas (MQ2)
+                    ['temp', 'hum', 'soil', 'gas'].forEach(k => {
                         const el = document.getElementById(`val-${nodeId}-${k}`);
                         if(el) {
                             if (d[k] != null) {
-                                let val = typeof d[k] === 'number' ? d[k].toFixed(1) : d[k];
-                                el.innerText = `${val}${k==='temp'?'°C':'%'}`;
+                                // แปลงหน่วยตามประเภทข้อมูล
+                                let val = typeof d[k] === 'number' ? (k === 'gas' || k === 'soil' ? Math.round(d[k]) : d[k].toFixed(1)) : d[k];
+                                let unit = k === 'temp' ? '°C' : (k === 'gas' ? ' ppm' : '%');
+                                el.innerText = `${val}${unit}`;
                             } else {
                                 el.innerText = '--';
                             }
@@ -666,7 +684,6 @@
                 });
                 
                 if(currentUser === "อุบลพันธุ์") pollSystemLogs();
-                loadACStateFromFirebase(); 
             });
         }
 
@@ -705,4 +722,4 @@
         updateACUI();
     </script>
 </body>
-</html> 
+</html>
