@@ -234,7 +234,7 @@
 
     </main>
 
-    <script>
+        <script>
         const FIREBASE_URL = "https://ubonpan-smartfarm-default-rtdb.firebaseio.com";
         const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
         
@@ -246,6 +246,7 @@
 
         const ALL_NODES = ['node1', 'node2', 'node3', 'node4'];
 
+        // รายชื่อ User (สามารถแก้ไข/เพิ่มได้ตามต้องการ)
         const DEFAULT_USERS = {
             "ณรงค์ชัย": "โจ้04100", "ชญาดา": "แป้ง04200",
             "วัชราภรณ์": "แนน04300", "ณภัสกร": "จูน04400",
@@ -263,7 +264,8 @@
             const modeText = document.getElementById('ac-modeText');
             modeText.innerText = acState.mod;
             modeText.className = `text-[10px] font-bold mt-1 tracking-wide uppercase ${acState.pwr ? 'text-sky-500' : 'text-slate-400'}`;
-        const btnPwr = document.getElementById('ac-btnPwr');
+
+            const btnPwr = document.getElementById('ac-btnPwr');
             if (acState.pwr) { btnPwr.classList.add('active-green'); btnPwr.classList.remove('text-slate-400'); } 
             else { btnPwr.classList.remove('active-green'); btnPwr.classList.add('text-slate-400'); }
 
@@ -308,28 +310,36 @@
             fetch(`${FIREBASE_URL}/farm/node_air.json?_=${Date.now()}`)
                 .then(res => res.json())
                 .then(data => {
-                    if(data) {
-                        const statAir = document.getElementById('status-node_air');
-                        let isAirOnline = false;
-                        if (data.timestamp) {
-                            isAirOnline = (Date.now() - data.timestamp < 120000); 
-                        } else if (data.state) {
-                            isAirOnline = true; 
-                        }
+                    if(data && data.state) {
+                        acState = data.state;
+                        updateACUI();
+                    }
+                });
+        }
 
-                        if(statAir) {
-                            if(isAirOnline) {
-                                statAir.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> <span class="text-green-600 font-bold">Online</span>`;
-                                statAir.className = "text-xs flex items-center bg-green-50 px-3 py-1.5 rounded-full border border-green-200 transition-all";
-                            } else {
-                                statAir.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> <span class="text-red-600 font-bold">Offline</span>`;
-                                statAir.className = "text-xs flex items-center bg-red-50 px-3 py-1.5 rounded-full border border-red-200 transition-all shadow-sm";
-                            }
-                        }
-
-                        if(data.state) {
-                            acState = data.state;
-                            updateACUI();
+        // --- ฟังก์ชันดึงชีพจรของแอร์ (เพิ่มใหม่) วิ่งตลอดเวลาเพื่อเช็ค Online/Offline ---
+        function pollACStatus() {
+            fetch(`${FIREBASE_URL}/farm/node_air/timestamp.json?_=${Date.now()}`)
+                .then(res => res.json())
+                .then(timestamp => {
+                    const statAir = document.getElementById('status-node_air');
+                    let isAirOnline = false;
+                    
+                    if (timestamp) {
+                        // หักลบค่า GMT+7 (25,200,000 ms) ที่บอร์ดบวกมา เพื่อให้เป็น UTC ตรงกับเบราว์เซอร์
+                        let boardTimeMs = timestamp - 25200000;
+                        let timeDiff = Date.now() - boardTimeMs;
+                        // ถ้าสัญญาณส่งมาล่าช้าไม่เกิน 2 นาที (120,000 ms) ถือว่าออนไลน์
+                        isAirOnline = Math.abs(timeDiff) < 120000;
+                    }
+                    
+                    if(statAir) {
+                        if(isAirOnline) {
+                            statAir.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span> <span class="text-green-600 font-bold">Online</span>`;
+                            statAir.className = "text-xs flex items-center bg-green-50 px-3 py-1.5 rounded-full border border-green-200 transition-all";
+                        } else {
+                            statAir.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> <span class="text-red-600 font-bold">Offline</span>`;
+                            statAir.className = "text-xs flex items-center bg-red-50 px-3 py-1.5 rounded-full border border-red-200 transition-all shadow-sm";
                         }
                     }
                 });
@@ -400,11 +410,10 @@
             container.innerHTML = '';
 
             ALL_NODES.forEach(nodeId => {
-                let defaultName = nodeId === 'node1' ? 'บ้านเรนะ' : (nodeId === 'node2' ? 'สำนักงาน' : `ลูกข่าย ${nodeId.replace('node','')}`);
+                let defaultName = nodeId === 'node1' ? 'ผพช.กกร.สกป.กร.ทอ.' : (nodeId === 'node2' ? 'สำนักงาน' : `ลูกข่าย ${nodeId.replace('node','')}`);
                 let isVisible = (currentUser === 'อุบลพันธุ์') ? true : ((visData && (visData[nodeId] === true || visData[nodeId] === "true")) ? true : false);
                 if (!isVisible) return; 
 
-                // HTML แบบใหม่: เพิ่มช่องสำหรับ MQ2 (gas) เป็น 4 ช่อง
                 let html = `
                 <div class="glass-light p-6 md:p-8 rounded-2xl border-t-4 border-t-green-400" id="zone-${nodeId}">
                     <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -550,6 +559,7 @@
                     document.getElementById('w-pm25').innerText = 'Error';
                 });
         }
+
         function initLocationAndWeather() {
             const locEl = document.getElementById('weather-location');
             if (locEl) locEl.innerHTML = `<span class="material-icons-round text-xs text-sky-500 animate-spin">sync</span>กำลังค้นหาพิกัด GPS...`;
@@ -572,8 +582,12 @@
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
             fetch(`${FIREBASE_URL}/users/${user}.json`).then(res => res.json()).then(saved => {
-                if (saved === pass) { sessionStorage.setItem('currentUser', user); currentUser = user; closeLogin(); updateDashboardSkins(); generateNodePlaceholders(globalVisibility); pollFirebaseData(); pushLog("เข้าสู่ระบบ"); } 
-                else showToast("รหัสผ่านไม่ถูกต้อง");
+                // อัปเดตลอจิกให้ดึงจาก DEFAULT_USERS ก่อน ถ้าไม่มีค่อยไปเช็ค Firebase
+                if (DEFAULT_USERS[user] === pass || saved === pass) { 
+                    sessionStorage.setItem('currentUser', user); currentUser = user; 
+                    closeLogin(); updateDashboardSkins(); generateNodePlaceholders(globalVisibility); pollFirebaseData(); 
+                    pushLog("เข้าสู่ระบบ"); 
+                } else showToast("รหัสผ่านไม่ถูกต้อง");
             });
         }
         
@@ -622,6 +636,7 @@
             if(el && document.activeElement !== el) { el.checked = (state === 1); }
         }
 
+        // --- ลอจิกอัปเดต Farm Node แก้ปัญหาหักลบ Timezone ---
         function pollFirebaseData() {
             fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
                 globalVisibility = visData || { node1: true, node2: true, node3: false, node4: false };
@@ -640,9 +655,14 @@
                     let isOnline = false;
                     if (Object.keys(d).length > 0) {
                         if (d.timestamp) {
-                            isOnline = (Date.now() - d.timestamp < 120000); 
+                            // หักลบค่า GMT+7 (25,200,000 ms) ที่บอร์ดบวกมา เพื่อให้เป็น UTC ตรงกับเบราว์เซอร์
+                            let boardTimeMs = d.timestamp - 25200000;
+                            let timeDiff = Date.now() - boardTimeMs;
+                            // ถ้าน้อยกว่า 120 วินาที (2 นาที) ถือว่าออนไลน์
+                            isOnline = Math.abs(timeDiff) < 120000; 
                         } else {
-                            isOnline = true; 
+                            // ถ้าเพิ่งเปิดบอร์ดแล้ว Timestamp แรกยังไม่ส่งมา ให้ดับไว้ก่อนชัวร์ที่สุด
+                            isOnline = false; 
                         }
                     }
 
@@ -658,12 +678,10 @@
 
                     updateInputIfNoFocus(`input-name-${nodeId}`, d.name);
 
-                    // อัปเดตข้อมูลเซ็นเซอร์ให้รองรับ Temp, Hum, Soil และ Gas (MQ2)
                     ['temp', 'hum', 'soil', 'gas'].forEach(k => {
                         const el = document.getElementById(`val-${nodeId}-${k}`);
                         if(el) {
                             if (d[k] != null) {
-                                // แปลงหน่วยตามประเภทข้อมูล
                                 let val = typeof d[k] === 'number' ? (k === 'gas' || k === 'soil' ? Math.round(d[k]) : d[k].toFixed(1)) : d[k];
                                 let unit = k === 'temp' ? '°C' : (k === 'gas' ? ' ppm' : '%');
                                 el.innerText = `${val}${unit}`;
@@ -709,17 +727,29 @@
                 .then(() => { btn.innerText = "สำเร็จ"; setTimeout(() => btn.innerText = oldText, 2000); pushLog(`บันทึกการตั้งค่า ${nodeId}`); });
         }
 
+        // --- เพิ่มการทำงานของ pollACStatus ให้วิ่งอัตโนมัติพร้อมบอร์ดฟาร์ม ---
         function bootSystem() {
             fetch(`${FIREBASE_URL}/board_visibility.json`).then(res => res.json()).then(vis => {
                 globalVisibility = vis || { node1: true, node2: true, node3: false, node4: false };
-                generateNodePlaceholders(globalVisibility); initLocationAndWeather(); updateDashboardSkins(); 
-                loadACStateFromFirebase(); pollFirebaseData(); 
-                setInterval(pollFirebaseData, 3000);
+                generateNodePlaceholders(globalVisibility); 
+                initLocationAndWeather(); 
+                updateDashboardSkins(); 
+                loadACStateFromFirebase(); 
+                pollFirebaseData(); 
+                pollACStatus(); // เริ่มเรียกดูชีพจรแอร์
+                
+                // ให้ระบบตรวจสอบอัปเดตทุกๆ 3 วินาที
+                setInterval(() => {
+                    pollFirebaseData();
+                    pollACStatus();
+                }, 3000);
+                
                 setInterval(() => { document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
             });
         }
         bootSystem();
         updateACUI();
-    </script>
+    </script>                                                                                                                                                         
+                                                                                                                                                         
 </body>
 </html>
