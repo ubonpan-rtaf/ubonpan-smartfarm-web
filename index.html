@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UBONPAN SMART HUB - Light Edition</title>
+    <title>UBONPAN SMART HUB - Lifestyle Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -15,10 +15,9 @@
         
         .config-input { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; border-radius: 0.5rem; padding: 0.35rem 0.5rem; font-size: 0.75rem; width: 100%; transition: all 0.2s; }
         .config-input:focus { outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2); }
-        .node-name-input { background: transparent; border: none; border-bottom: 1px dashed #94a3b8; color: #0f172a; font-weight: bold; font-size: 1.125rem; outline: none; width: auto; max-width: 150px; transition: all 0.2s;}
+        .node-name-input { background: transparent; border: none; border-bottom: 1px dashed #94a3b8; color: #0f172a; font-weight: bold; font-size: 1.125rem; outline: none; width: auto; max-width: 250px; transition: all 0.2s;}
         .node-name-input:focus { border-bottom-color: var(--primary); color: var(--primary); }
         
-        /* AC Specific Styles */
         .btn-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s; background: #f8fafc; border: 1px solid #e2e8f0;}
         .btn-circle.active-green { background-color: #22c55e; color: white; border-color:#22c55e; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3); }
         .btn-circle.active-blue { background-color: #0ea5e9; color: white; border-color:#0ea5e9; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); }
@@ -117,17 +116,29 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-8" id="weather-engine-panel">
-            <div class="glass-light p-3 rounded-2xl text-center"><div class="text-[9px] text-slate-400 font-bold uppercase">อุณหภูมิภายนอก</div><div class="font-bold text-rose-500 text-base mt-1" id="w-temp">--°C</div></div>
-            <div class="glass-light p-3 rounded-2xl text-center"><div class="text-[9px] text-slate-400 font-bold uppercase">รู้สึกเหมือน</div><div class="font-bold text-amber-500 text-base mt-1" id="w-feels">--°C</div></div>
-            <div class="glass-light p-3 rounded-2xl text-center"><div class="text-[9px] text-slate-400 font-bold uppercase">ความชื้นสัมพัทธ์</div><div class="font-bold text-sky-500 text-base mt-1" id="w-hum">--%</div></div>
-            <div class="glass-light p-3 rounded-2xl text-center relative overflow-hidden">
-                <div class="text-[9px] text-slate-400 font-bold uppercase">สภาพอากาศ</div>
-                <div class="font-bold text-slate-700 text-sm mt-1 truncate px-1" id="w-cloud">--</div>
-                <div id="rain-alert" class="absolute inset-0 bg-blue-100 border border-blue-300 hidden items-center justify-center text-[10px] font-bold text-blue-600 animate-pulse">มีฝนตก (Rain)</div>
+        <div class="glass-light p-6 md:p-8 rounded-2xl mb-8 relative border-t-4 border-t-blue-400">
+            <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                <span class="material-icons-round text-blue-500">public</span>
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-widest">สภาพอากาศ & คำแนะนำการใช้ชีวิต (Lifestyle Advisor)</h3>
             </div>
-            <div class="glass-light p-3 rounded-2xl text-center"><div class="text-[9px] text-slate-400 font-bold uppercase">ความเร็วลม</div><div class="font-bold text-slate-700 text-base mt-1" id="w-wind">-- m/s</div></div>
-            <div class="glass-light p-3 rounded-2xl text-center"><div class="text-[9px] text-slate-400 font-bold uppercase">ฝุ่น PM2.5 (API)</div><div class="font-bold text-amber-500 text-base mt-1" id="w-pm25">--</div></div>
+            
+            <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-4" id="weather-engine-panel">
+                <div class="bg-white border border-slate-100 p-3 rounded-2xl text-center shadow-sm"><div class="text-[9px] text-slate-400 font-bold uppercase">อุณหภูมิภายนอก</div><div class="font-bold text-rose-500 text-base mt-1" id="w-temp">--°C</div></div>
+                <div class="bg-white border border-slate-100 p-3 rounded-2xl text-center shadow-sm"><div class="text-[9px] text-slate-400 font-bold uppercase">รู้สึกเหมือน</div><div class="font-bold text-amber-500 text-base mt-1" id="w-feels">--°C</div></div>
+                <div class="bg-white border border-slate-100 p-3 rounded-2xl text-center shadow-sm"><div class="text-[9px] text-slate-400 font-bold uppercase">ความชื้นสัมพัทธ์</div><div class="font-bold text-sky-500 text-base mt-1" id="w-hum">--%</div></div>
+                
+                <div class="bg-white border border-slate-100 p-3 rounded-2xl text-center relative overflow-hidden shadow-sm">
+                    <div class="text-[9px] text-slate-400 font-bold uppercase">ปริมาณเมฆ</div>
+                    <div class="font-bold text-slate-700 text-base mt-1 px-1" id="w-cloud">--%</div>
+                    <div id="rain-alert" class="absolute inset-0 bg-blue-100 border border-blue-300 hidden items-center justify-center text-[10px] font-bold text-blue-600 animate-pulse">มีฝนตก (Rain)</div>
+                </div>
+                
+                <div class="bg-white border border-slate-100 p-3 rounded-2xl text-center shadow-sm"><div class="text-[9px] text-slate-400 font-bold uppercase">ความเร็วลม</div><div class="font-bold text-slate-700 text-base mt-1" id="w-wind">-- m/s</div></div>
+                <div class="bg-white border border-slate-100 p-3 rounded-2xl text-center shadow-sm"><div class="text-[9px] text-slate-400 font-bold uppercase">ฝุ่น PM2.5</div><div class="font-bold text-amber-500 text-base mt-1" id="w-pm25">--</div></div>
+            </div>
+
+            <div id="lifestyle-advisor" class="flex flex-wrap gap-2 mt-2">
+                </div>
         </div>
 
         <div class="glass-light p-6 md:p-8 rounded-2xl mb-8 relative border-t-4 border-t-sky-400" id="zone-air">
@@ -139,7 +150,6 @@
                         <p class="text-[10px] font-medium text-slate-400">ควบคุมเครื่องปรับอากาศผ่านระบบ IR</p>
                     </div>
                 </div>
-                
                 <div class="flex items-center gap-3">
                     <span class="text-xs text-slate-500 flex items-center bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200" id="status-node_air">
                         <span class="w-2 h-2 rounded-full bg-slate-400 mr-2"></span> รอเชื่อมต่อแอร์...
@@ -154,12 +164,10 @@
             <div class="flex flex-col md:flex-row items-center justify-around gap-8">
                 <div class="flex items-center justify-center relative">
                     <button onclick="changeACTemp(-1)" class="w-10 h-10 bg-white rounded-full border border-slate-200 shadow-sm text-xl font-bold text-slate-500 active:bg-slate-100 flex items-center justify-center hover:text-sky-500 transition mr-4">-</button>
-                    
                     <div class="dial-container shadow-sm">
                         <div class="text-[48px] font-light text-slate-700 leading-none relative" id="ac-tempDisp">25<span class="text-2xl text-slate-400 absolute -top-1 ml-1">°</span></div>
                         <div class="text-sky-500 text-[10px] font-bold mt-1 tracking-wide uppercase" id="ac-modeText">COOLING</div>
                     </div>
-
                     <button onclick="changeACTemp(1)" class="w-10 h-10 bg-white rounded-full border border-slate-200 shadow-sm text-xl font-bold text-slate-500 active:bg-slate-100 flex items-center justify-center hover:text-sky-500 transition ml-4">+</button>
                 </div>
 
@@ -234,7 +242,7 @@
 
     </main>
 
-        <script>
+    <script>
         const FIREBASE_URL = "https://ubonpan-smartfarm-default-rtdb.firebaseio.com";
         const OPENWEATHER_API_KEY = "5e88796cca9c0d5f8090cc84ea86d59d"; 
         
@@ -246,7 +254,6 @@
 
         const ALL_NODES = ['node1', 'node2', 'node3', 'node4'];
 
-        // รายชื่อ User (สามารถแก้ไข/เพิ่มได้ตามต้องการ)
         const DEFAULT_USERS = {
             "ณรงค์ชัย": "โจ้04100", "ชญาดา": "แป้ง04200",
             "วัชราภรณ์": "แนน04300", "ณภัสกร": "จูน04400",
@@ -258,7 +265,7 @@
         const acSpeeds = ['AUTO', 'LOW', 'MED', 'HIGH'];
 
         function updateACUI() {
-            document.getElementById('ac-brand').value = acState.brand;
+            document.getElementById('ac-brand').value = acState.brand || 'HAIER';
             document.getElementById('ac-tempDisp').innerHTML = acState.tmp + '<span class="text-2xl text-slate-400 absolute -top-1 ml-1">°</span>';
             
             const modeText = document.getElementById('ac-modeText');
@@ -317,19 +324,18 @@
                 });
         }
 
-        // --- ฟังก์ชันดึงชีพจรของแอร์ (เพิ่มใหม่) วิ่งตลอดเวลาเพื่อเช็ค Online/Offline ---
         function pollACStatus() {
-            fetch(`${FIREBASE_URL}/farm/node_air/timestamp.json?_=${Date.now()}`)
+            fetch(`${FIREBASE_URL}/farm/node_air.json?_=${Date.now()}`)
                 .then(res => res.json())
-                .then(timestamp => {
+                .then(data => {
+                    if (!data) return;
+
                     const statAir = document.getElementById('status-node_air');
                     let isAirOnline = false;
                     
-                    if (timestamp) {
-                        // หักลบค่า GMT+7 (25,200,000 ms) ที่บอร์ดบวกมา เพื่อให้เป็น UTC ตรงกับเบราว์เซอร์
-                        let boardTimeMs = timestamp - 25200000;
+                    if (data.timestamp) {
+                        let boardTimeMs = data.timestamp - 25200000;
                         let timeDiff = Date.now() - boardTimeMs;
-                        // ถ้าสัญญาณส่งมาล่าช้าไม่เกิน 2 นาที (120,000 ms) ถือว่าออนไลน์
                         isAirOnline = Math.abs(timeDiff) < 120000;
                     }
                     
@@ -342,10 +348,16 @@
                             statAir.className = "text-xs flex items-center bg-red-50 px-3 py-1.5 rounded-full border border-red-200 transition-all shadow-sm";
                         }
                     }
+
+                    // Sync AC UI if changed externally
+                    if (data.state && JSON.stringify(acState) !== JSON.stringify(data.state)) {
+                        acState = data.state;
+                        updateACUI();
+                    }
                 });
         }
-        // =================================================
 
+        // ================= GENERAL APP LOGIC =================
         function checkFocus(el) { if (!currentUser) { el.blur(); showToast("กรุณาลงชื่อเข้าใช้งานก่อนตั้งค่า"); } }
 
         function checkToggle(el, nodeId, type) {
@@ -410,16 +422,28 @@
             container.innerHTML = '';
 
             ALL_NODES.forEach(nodeId => {
-                let defaultName = nodeId === 'node1' ? 'ผพช.กกร.สกป.กร.ทอ.' : (nodeId === 'node2' ? 'สำนักงาน' : `ลูกข่าย ${nodeId.replace('node','')}`);
-                let isVisible = (currentUser === 'อุบลพันธุ์') ? true : ((visData && (visData[nodeId] === true || visData[nodeId] === "true")) ? true : false);
+                // Node 1 (Office) ให้โชว์เสมอเป็นค่าเริ่มต้นเพื่อป้องกันหน้าจอว่าง
+                let defaultName = nodeId === 'node1' ? 'OFFICE SENSOR (สำนักงาน)' : `ลูกข่าย ${nodeId.replace('node','')}`;
+                
+                let isVisible = false;
+                if (currentUser === 'อุบลพันธุ์') {
+                    isVisible = true;
+                } else {
+                    if (visData && visData[nodeId] !== undefined) {
+                        isVisible = (visData[nodeId] === true || visData[nodeId] === "true");
+                    } else {
+                        isVisible = (nodeId === 'node1'); // Fallback: Node1 shows by default
+                    }
+                }
+
                 if (!isVisible) return; 
 
                 let html = `
-                <div class="glass-light p-6 md:p-8 rounded-2xl border-t-4 border-t-green-400" id="zone-${nodeId}">
-                    <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <div class="glass-light p-6 md:p-8 rounded-2xl border-t-4 border-t-green-400 shadow-sm" id="zone-${nodeId}">
+                    <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 border-b border-slate-100 pb-4 gap-4">
                         <div class="flex items-center gap-3">
-                            <span class="material-icons-round text-green-500 text-2xl">router</span>
-                            <input type="text" id="input-name-${nodeId}" value="${defaultName}" onfocus="checkFocus(this)" onchange="requireAuth(() => updateNodeName('${nodeId}', this.value))" class="node-name-input" placeholder="ตั้งชื่อโซน...">
+                            <span class="material-icons-round text-green-500 text-3xl">router</span>
+                            <input type="text" id="input-name-${nodeId}" value="${defaultName}" onfocus="checkFocus(this)" onchange="requireAuth(() => updateNodeName('${nodeId}', this.value))" class="node-name-input text-lg">
                         </div>
                         <span class="text-xs text-slate-500 flex items-center bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200" id="status-${nodeId}">
                             <span class="w-2 h-2 rounded-full bg-slate-400 mr-2"></span> รอการเชื่อมต่อ...
@@ -513,6 +537,114 @@
             </div>`;
         }
 
+        // --- Weather & Lifestyle Advisor Logic ---
+        function fetchWeatherData(lat, lon) {
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('weather-location').innerHTML = `<span class="material-icons-round text-xs text-sky-500">location_on</span>${data.name}, ${data.sys.country}`;
+                    document.getElementById('w-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
+                    document.getElementById('w-feels').innerText = `${data.main.feels_like.toFixed(1)}°C`;
+                    document.getElementById('w-hum').innerText = `${data.main.humidity}%`;
+                    
+                    // อัปเดตปริมาณเมฆเป็น %
+                    document.getElementById('w-cloud').innerText = `${data.clouds.all}%`;
+                    
+                    document.getElementById('w-wind').innerText = `${data.wind.speed} m/s`;
+                    
+                    currentWeather.isRaining = (data.weather[0].id >= 200 && data.weather[0].id < 600);
+                    document.getElementById('w-cloud').style.display = currentWeather.isRaining ? 'none' : 'block';
+                    document.getElementById('rain-alert').style.display = currentWeather.isRaining ? 'flex' : 'none';
+
+                    updateLifestyleAdvice(data.clouds.all, data.main.feels_like, null);
+                });
+
+            fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.list && data.list.length > 0) {
+                        let pm25 = data.list[0].components.pm2_5;
+                        document.getElementById('w-pm25').innerHTML = `${pm25.toFixed(1)} <span class="text-[10px] font-normal text-slate-400">µg/m³</span>`;
+                        updateLifestyleAdvice(null, null, pm25);
+                    } else {
+                        document.getElementById('w-pm25').innerText = 'N/A';
+                    }
+                }).catch(e => {
+                    document.getElementById('w-pm25').innerText = 'Error';
+                });
+        }
+
+        // ระบบวิเคราะห์คำแนะนำการใช้ชีวิต (Lifestyle Advisor)
+        let lastCloud = 0, lastFeel = 0, lastPm = 0;
+        function updateLifestyleAdvice(cloud, feel, pm25) {
+            if (cloud !== null) lastCloud = cloud;
+            if (feel !== null) lastFeel = feel;
+            if (pm25 !== null) lastPm = pm25;
+
+            let adviceHtml = '';
+            
+            // 1. วิเคราะห์ฝนและการซักผ้า
+            if (currentWeather.isRaining || lastCloud > 70) {
+                adviceHtml += `<span class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"><span class="material-icons-round text-sm">umbrella</span> เสี่ยงฝนตก ควรพกร่ม/งดซักผ้า</span>`;
+            } else if (lastCloud < 30) {
+                adviceHtml += `<span class="bg-orange-50 text-orange-600 border border-orange-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"><span class="material-icons-round text-sm">wb_sunny</span> แดดดีมาก เหมาะกับการซักผ้าตากแดด</span>`;
+            } else {
+                adviceHtml += `<span class="bg-slate-50 text-slate-600 border border-slate-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"><span class="material-icons-round text-sm">cloud</span> มีเมฆประปราย อากาศกำลังดี</span>`;
+            }
+
+            // 2. วิเคราะห์ความร้อน (Heatstroke)
+            if (lastFeel >= 35) {
+                adviceHtml += `<span class="bg-red-50 text-red-600 border border-red-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm animate-pulse"><span class="material-icons-round text-sm">local_fire_department</span> อากาศร้อนจัด ระวังฮีทสโตรก ดื่มน้ำบ่อยๆ</span>`;
+            }
+
+            // 3. วิเคราะห์ฝุ่น PM 2.5
+            if (lastPm > 50) {
+                adviceHtml += `<span class="bg-amber-50 text-amber-600 border border-amber-200 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm"><span class="material-icons-round text-sm">masks</span> ฝุ่น PM2.5 ค่อนข้างสูง ควรสวมหน้ากากอนามัย</span>`;
+            }
+
+            document.getElementById('lifestyle-advisor').innerHTML = adviceHtml;
+        }
+
+        function initLocationAndWeather() {
+            const locEl = document.getElementById('weather-location');
+            if (locEl) locEl.innerHTML = `<span class="material-icons-round text-xs text-sky-500 animate-spin">sync</span>กำลังค้นหาพิกัด GPS...`;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => fetchWeatherData(position.coords.latitude, position.coords.longitude),
+                    (error) => { fetchWeatherData(13.7563, 100.5018); showToast("ใช้พิกัดกรุงเทพฯ เป็นค่าเริ่มต้น"); },
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                );
+            } else { fetchWeatherData(13.7563, 100.5018); }
+        }
+
+        // ================= SECURITY & ADMIN =================
+        function changePassword() {
+            if (!currentUser) return;
+            const newPass = document.getElementById('new-password').value.trim();
+            
+            if (newPass.length < 4) { showToast("รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร"); return; }
+            
+            let payload = {}; payload[currentUser] = newPass;
+            
+            fetch(`${FIREBASE_URL}/users.json`, { method: "PATCH", body: JSON.stringify(payload) })
+                .then(() => {
+                    showToast("เปลี่ยนรหัสผ่านสำเร็จ!");
+                    document.getElementById('new-password').value = ""; 
+                    pushLog("เปลี่ยนรหัสผ่านส่วนตัว");
+                });
+        }
+
+        function toggleBoardVisibility(nodeId, isVisible) {
+            if (currentUser !== 'อุบลพันธุ์') return;
+            let payload = {}; payload[nodeId] = isVisible;
+            fetch(`${FIREBASE_URL}/board_visibility.json`, { method: "PATCH", body: JSON.stringify(payload) })
+                .then(() => {
+                    showToast(`อัปเดตสิทธิ์การมองเห็น ${nodeId} สำเร็จ`);
+                    pushLog(`ตั้งค่าให้ ${nodeId} ${isVisible ? 'แสดงผล' : 'ซ่อน'} จากผู้ใช้งานทั่วไป`);
+                });
+        }
+
         function buildAdminVisibilityToggles() {
             const container = document.getElementById('visibility-toggles-container');
             if(!container) return; container.innerHTML = '';
@@ -529,50 +661,7 @@
             });
         }
 
-        function fetchWeatherData(lat, lon) {
-            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=th`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('weather-location').innerHTML = `<span class="material-icons-round text-xs text-sky-500">location_on</span>${data.name}, ${data.sys.country}`;
-                    document.getElementById('w-temp').innerText = `${data.main.temp.toFixed(1)}°C`;
-                    document.getElementById('w-feels').innerText = `${data.main.feels_like.toFixed(1)}°C`;
-                    document.getElementById('w-hum').innerText = `${data.main.humidity}%`;
-                    document.getElementById('w-cloud').innerText = data.weather[0].description;
-                    document.getElementById('w-wind').innerText = `${data.wind.speed} m/s`;
-                    
-                    currentWeather.isRaining = (data.weather[0].id >= 200 && data.weather[0].id < 600);
-                    document.getElementById('w-cloud').style.display = currentWeather.isRaining ? 'none' : 'block';
-                    document.getElementById('rain-alert').style.display = currentWeather.isRaining ? 'flex' : 'none';
-                });
-
-            fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.list && data.list.length > 0) {
-                        let pm25 = data.list[0].components.pm2_5;
-                        document.getElementById('w-pm25').innerHTML = `${pm25.toFixed(1)} <span class="text-[10px] font-normal text-slate-400">µg/m³</span>`;
-                    } else {
-                        document.getElementById('w-pm25').innerText = 'N/A';
-                    }
-                }).catch(e => {
-                    console.error("Error fetching air pollution", e);
-                    document.getElementById('w-pm25').innerText = 'Error';
-                });
-        }
-
-        function initLocationAndWeather() {
-            const locEl = document.getElementById('weather-location');
-            if (locEl) locEl.innerHTML = `<span class="material-icons-round text-xs text-sky-500 animate-spin">sync</span>กำลังค้นหาพิกัด GPS...`;
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => fetchWeatherData(position.coords.latitude, position.coords.longitude),
-                    (error) => { fetchWeatherData(13.7563, 100.5018); showToast("ไม่สามารถดึง GPS ได้ ใช้พิกัดกรุงเทพฯ"); },
-                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-                );
-            } else { fetchWeatherData(13.7563, 100.5018); }
-        }
-
+        // ================= AUTH LOGIC =================
         function requireAuth(allowedAction) { if (currentUser) allowedAction(); else showToast("กรุณาล็อกอินเพื่อใช้งาน"); }
         function showToast(msg) { const t = document.getElementById("toast"); document.getElementById("toast-msg").innerText = msg; t.className = "show flex items-center gap-2 justify-center"; setTimeout(() => t.className = t.className.replace("show", ""), 3000); }
         function openLogin() { document.getElementById('login-modal').classList.remove('hidden'); }
@@ -582,7 +671,6 @@
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
             fetch(`${FIREBASE_URL}/users/${user}.json`).then(res => res.json()).then(saved => {
-                // อัปเดตลอจิกให้ดึงจาก DEFAULT_USERS ก่อน ถ้าไม่มีค่อยไปเช็ค Firebase
                 if (DEFAULT_USERS[user] === pass || saved === pass) { 
                     sessionStorage.setItem('currentUser', user); currentUser = user; 
                     closeLogin(); updateDashboardSkins(); generateNodePlaceholders(globalVisibility); pollFirebaseData(); 
@@ -636,10 +724,9 @@
             if(el && document.activeElement !== el) { el.checked = (state === 1); }
         }
 
-        // --- ลอจิกอัปเดต Farm Node แก้ปัญหาหักลบ Timezone ---
         function pollFirebaseData() {
             fetch(`${FIREBASE_URL}/board_visibility.json?_=${Date.now()}`).then(res => res.json()).then(visData => {
-                globalVisibility = visData || { node1: true, node2: true, node3: false, node4: false };
+                globalVisibility = visData || { node1: true, node2: false, node3: false, node4: false };
                 ALL_NODES.forEach(n => {
                     const chk = document.getElementById(`vis-chk-${n}`);
                     if(chk && document.activeElement !== chk && currentUser === 'อุบลพันธุ์') chk.checked = (visData[n] === true || visData[n] === "true");
@@ -655,13 +742,10 @@
                     let isOnline = false;
                     if (Object.keys(d).length > 0) {
                         if (d.timestamp) {
-                            // หักลบค่า GMT+7 (25,200,000 ms) ที่บอร์ดบวกมา เพื่อให้เป็น UTC ตรงกับเบราว์เซอร์
                             let boardTimeMs = d.timestamp - 25200000;
                             let timeDiff = Date.now() - boardTimeMs;
-                            // ถ้าน้อยกว่า 120 วินาที (2 นาที) ถือว่าออนไลน์
                             isOnline = Math.abs(timeDiff) < 120000; 
                         } else {
-                            // ถ้าเพิ่งเปิดบอร์ดแล้ว Timestamp แรกยังไม่ส่งมา ให้ดับไว้ก่อนชัวร์ที่สุด
                             isOnline = false; 
                         }
                     }
@@ -727,29 +811,32 @@
                 .then(() => { btn.innerText = "สำเร็จ"; setTimeout(() => btn.innerText = oldText, 2000); pushLog(`บันทึกการตั้งค่า ${nodeId}`); });
         }
 
-        // --- เพิ่มการทำงานของ pollACStatus ให้วิ่งอัตโนมัติพร้อมบอร์ดฟาร์ม ---
         function bootSystem() {
             fetch(`${FIREBASE_URL}/board_visibility.json`).then(res => res.json()).then(vis => {
-                globalVisibility = vis || { node1: true, node2: true, node3: false, node4: false };
+                globalVisibility = vis || { node1: true, node2: false, node3: false, node4: false };
                 generateNodePlaceholders(globalVisibility); 
                 initLocationAndWeather(); 
                 updateDashboardSkins(); 
                 loadACStateFromFirebase(); 
                 pollFirebaseData(); 
-                pollACStatus(); // เริ่มเรียกดูชีพจรแอร์
+                pollACStatus(); 
                 
-                // ให้ระบบตรวจสอบอัปเดตทุกๆ 3 วินาที
                 setInterval(() => {
                     pollFirebaseData();
                     pollACStatus();
                 }, 3000);
+
+                // ดึงข้อมูลสภาพอากาศใหม่ทุก 15 นาที
+                setInterval(() => {
+                    initLocationAndWeather();
+                }, 900000); 
                 
                 setInterval(() => { document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
             });
         }
+        
         bootSystem();
         updateACUI();
-    </script>                                                                                                                                                         
-                                                                                                                                                         
+    </script>                                                                                                                                                                                                                                                              
 </body>
 </html>
