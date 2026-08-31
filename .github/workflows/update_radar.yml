@@ -1,0 +1,57 @@
+name: Update Flight Radar Data
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # รันทุกๆ 5 นาที
+  workflow_dispatch:
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch OpenSky Data
+        run: |
+          curl -u "ujindapan@gmail.com:Bomba021992" \
+          "https://opensky-network.org/api/states/all?lamin=13.3931&lomin=100.1139&lamax=14.3931&lomax=101.1392" \
+          -o response.json
+
+      - name: Process Data with Node.js
+        run: |
+          node -e '
+            const fs = require("fs");
+            const raw = JSON.parse(fs.readFileSync("response.json"));
+            const centerLat = 13.893106;
+            const centerLon = 100.613921;
+            let planes = [];
+            
+            if (raw.states) {
+              raw.states.forEach(s => {
+                let callsign = s[1] ? s[1].trim() : "N/A";
+                if(callsign === "") callsign = "N/A";
+                let lon = s[5] || 0;
+                let lat = s[6] || 0;
+                let alt = s[7] || 0;
+                let speed = s[9] || 0;
+                
+                if (lon !== 0 && lat !== 0) {
+                  let mapX = ((lon - 100.1139) / (101.1392 - 100.1139)) * 128.0;
+                  let mapY = 128.0 - (((lat - 13.3931) / (14.3931 - 13.3931)) * 128.0;
+                  let distSq = ((mapX - 64.0) ** 2) + ((mapY - 64.0) ** 2);
+                  planes.push({ callsign, lat, lon, alt, speed, distSq });
+                }
+              });
+            }
+            planes.sort((a, b) => a.distSq - b.distSq);
+            fs.writeFileSync("flights.json", JSON.stringify(planes, null, 2));
+          '
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add flights.json
+          git commit -m "Auto-update flight radar data" || exit 0
+          git push
