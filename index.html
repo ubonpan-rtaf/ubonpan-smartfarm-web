@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UBONPAN - Live Flight Radar Command Center</title>
+    <title>UBONPAN - Live Flight Radar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -11,8 +11,7 @@
         :root { --primary: #0ea5e9; --surface: #080c14; }
         body { font-family: 'Space Grotesk', sans-serif; background-color: var(--surface); color: #e0e6ed; }
         .glass-card { background: #111827; border: 1px solid #1f2937; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
-        .plane-card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); transition: transform 0.2s; }
-        .plane-card:hover { border-color: #00f0ff40; transform: translateY(-2px); }
+        .plane-card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); }
         .plane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .callsign { font-size: 20px; font-weight: bold; font-family: monospace; letter-spacing: 1px; }
         .airline-info { font-size: 13px; color: #38bdf8; margin-bottom: 12px; font-style: italic; }
@@ -29,14 +28,14 @@
         <div>
             <h1 class="text-2xl font-bold tracking-wider text-white uppercase flex items-center gap-2">
                 <span class="material-icons-round text-sky-400 text-3xl">radar</span>
-                UBONPAN <span class="text-sky-400">Flight Radar</span>
+                UBONPAN <span class="text-sky-400">Flight Radar Hub</span>
             </h1>
-            <p class="text-xs text-slate-400 mt-1">Live Aerospace Tracking System • Desktop & Mobile Hub</p>
+            <p class="text-xs text-slate-400 mt-1">Processed via GitHub Actions & OpenSky Network</p>
         </div>
         <div class="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs">
             <span id="web-time" class="font-mono text-sky-400 font-bold">00:00:00</span>
             <span class="text-slate-600">|</span>
-            <span id="radar-status" class="text-slate-300">กำลังเชื่อมต่อฐานข้อมูล...</span>
+            <span id="radar-status" class="text-emerald-400">● SYNCED WITH GITHUB</span>
         </div>
     </header>
 
@@ -50,20 +49,12 @@
             </div>
             
             <div id="flight-radar-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="col-span-full text-center text-slate-500 py-12">กำลังสแกนน่านฟ้า กรุณารอสักครู่...</div>
+                <div class="col-span-full text-center text-slate-500 py-12">กำลังโหลดข้อมูลจาก GitHub...</div>
             </div>
         </div>
     </main>
 
     <script>
-        const CENTER_LAT = 13.893106;
-        const CENTER_LON = 100.613921;
-        const RADAR_RANGE = 0.5;
-        const LAMIN = CENTER_LAT - RADAR_RANGE;
-        const LAMAX = CENTER_LAT + RADAR_RANGE;
-        const LOMIN = CENTER_LON - RADAR_RANGE;
-        const LOMAX = CENTER_LON + RADAR_RANGE;
-        
         const planeHexColors = ["#00f0ff", "#ff00ff", "#ffe600", "#ff8000", "#ffffff"];
 
         function getAirlineDetails(callsign) {
@@ -79,48 +70,22 @@
             return "Commercial Flight (เที่ยวบินพาณิชย์ทั่วไป)";
         }
 
-        async function fetchFlightRadar() {
+        async function loadFlightData() {
             try {
-                document.getElementById('radar-status').innerText = "กำลังอัปเดตข้อมูลน่านฟ้า...";
-                const response = await fetch(`https://opensky-network.org/api/states/all?lamin=${LAMIN}&lomin=${LOMIN}&lamax=${LAMAX}&lomax=${LOMAX}`);
-                
+                // ดึงข้อมูลจากไฟล์ JSON ที่ GitHub Actions อัปเดตให้
+                const response = await fetch(`flights.json?_=${Date.now()}`);
                 if (response.ok) {
-                    const data = await response.json();
-                    let planes = [];
-                    
-                    if (data.states) {
-                        data.states.forEach(state => {
-                            let callsign = state[1] ? state[1].trim() : "N/A";
-                            if(callsign === "") callsign = "N/A";
-                            let lon = state[5] || 0;
-                            let lat = state[6] || 0;
-                            let alt = state[7] || 0;
-                            let speed = state[9] || 0;
-                            
-                            if (lon !== 0 && lat !== 0) {
-                                let mapX = ((lon - LOMIN) / (LOMAX - LOMIN)) * 128.0;
-                                let mapY = 128.0 - (((lat - LAMIN) / (LAMAX - LAMIN)) * 128.0);
-                                let distSq = ((mapX - 64.0) * (mapX - 64.0)) + ((mapY - 64.0) * (mapY - 64.0));
-                                
-                                planes.push({ callsign, lat, lon, alt, speed, distSq });
-                            }
-                        });
-                        
-                        planes.sort((a, b) => a.distSq - b.distSq);
-                        renderFlightRadar(planes);
-                    }
-                } else {
-                    document.getElementById('radar-status').innerHTML = "<span class='text-amber-400'>API Rate Limited (รอรอบถัดไป)</span>";
+                    const planes = await response.json();
+                    renderFlightRadar(planes);
                 }
             } catch (error) {
-                document.getElementById('radar-status').innerHTML = "<span class='text-rose-400'>ไม่สามารถเชื่อมต่อ Server ได้</span>";
+                document.getElementById('radar-status').innerHTML = "<span class='text-rose-400'>ไม่สามารถโหลดข้อมูลได้</span>";
             }
         }
 
         function renderFlightRadar(planes) {
             const container = document.getElementById('flight-radar-container');
             document.getElementById('target-count').innerText = `TARGETS: ${planes.length}`;
-            document.getElementById('radar-status').innerHTML = "<span class='text-emerald-400'>● LIVE TRACKING ACTIVE</span>";
             
             if(planes.length === 0) {
                 container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-12">ท้องฟ้าโปร่งใส ไม่พบอากาศยานในระยะเรดาร์ขณะนี้</div>`;
@@ -151,8 +116,8 @@
             container.innerHTML = html;
         }
 
-        fetchFlightRadar();
-        setInterval(fetchFlightRadar, 30000); // อัปเดตข้อมูลทุก 30 วินาที
+        loadFlightData();
+        setInterval(loadFlightData, 30000); // รีเฟรชข้อมูลหน้าเว็บทุก 30 วิ
         setInterval(() => { document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
     </script>
 </body>
