@@ -25,9 +25,9 @@ jobs:
 
       - name: Run Data Updater
         env:
-          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
-          OPENSKY_USER: ${{ secrets.OPENSKY_USER }}
-          OPENSKY_PASS: ${{ secrets.OPENSKY_PASS }}
+          WEATHER_API_KEY: ${{ secrets."5e88796cca9c0d5f8090cc84ea86d59d"}}
+          OPENSKY_USER: ${{ secrets."ujindapan@gmail.com"}}
+          OPENSKY_PASS: ${{ secrets."Bomba021992"}}
         run: python update_data.py
 
       - name: Commit and Push JSON files
