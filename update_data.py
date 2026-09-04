@@ -3,7 +3,6 @@ import json
 import requests
 from requests.auth import HTTPBasicAuth
 
-# 1. ตั้งค่าพิกัดศูนย์กลางและรัศมี (สะพานใหม่ / ดอนเมือง)
 CENTER_LAT = 13.893106
 CENTER_LON = 100.613921
 RADAR_RANGE = 0.5
@@ -13,7 +12,6 @@ LAMAX = CENTER_LAT + RADAR_RANGE
 LOMIN = CENTER_LON - RADAR_RANGE
 LOMAX = CENTER_LON + RADAR_RANGE
 
-# ดึงรหัสผ่านจาก GitHub Secrets โดยใช้ "ชื่อตัวแปร" ที่ตั้งไว้
 WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
 OPENSKY_USER = os.getenv('OPENSKY_USER')
 OPENSKY_PASS = os.getenv('OPENSKY_PASS')
@@ -23,7 +21,6 @@ def update_weather():
     try:
         response = requests.get(url, timeout=10)
         data = response.json()
-        
         weather_json = {
             "temp": data["main"]["temp"],
             "feels_like": data["main"]["feels_like"],
@@ -35,7 +32,6 @@ def update_weather():
             "desc": data["weather"][0]["main"].upper(),
             "id": data["weather"][0]["id"]
         }
-        
         with open('weather.json', 'w') as f:
             json.dump(weather_json, f)
         print("Weather updated successfully.")
@@ -58,12 +54,16 @@ def update_flights():
                 callsign = str(state[1]).strip() if state[1] else "N/A"
                 if callsign == "": callsign = "N/A"
                 
+                # เพิ่ม heading (ทิศทางการบิน state[10]) เพื่อใช้คำนวณการเคลื่อนที่บนเว็บ
+                heading = state[10] if state[10] is not None else 0.0
+                
                 flights.append({
                     "callsign": callsign,
                     "lon": lon,
                     "lat": lat,
                     "alt": state[7] or 0.0,
-                    "speed": state[9] or 0.0
+                    "speed": state[9] or 0.0,
+                    "heading": heading
                 })
         
         with open('flights.json', 'w') as f:
