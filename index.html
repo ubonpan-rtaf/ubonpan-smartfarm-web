@@ -19,10 +19,12 @@
         .glass-card { background: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
         .glass-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px -5px rgba(14, 165, 233, 0.25); border-color: #0284c7; }
         
-        /* Typography & Badges */
+        /* Typography & Inputs */
         .callsign { font-size: 1.25rem; font-weight: 700; font-family: monospace; letter-spacing: 1px; color: #38bdf8; }
         .data-label { color: #64748b; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .data-value { color: #f8fafc; font-weight: 600; font-family: monospace; font-size: 0.9rem; }
+        .radar-input { background: #0b1120; border: 1px solid #1e293b; color: #38bdf8; font-family: monospace; font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; width: 100%; outline: none; transition: border-color 0.2s; }
+        .radar-input:focus { border-color: #0ea5e9; }
         
         /* Tactical Radar UI */
         .radar-container { position: relative; width: 100%; max-width: 340px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: #020617; border: 2px solid #059669; overflow: hidden; box-shadow: 0 0 50px rgba(16, 185, 129, 0.15), inset 0 0 30px rgba(5, 150, 105, 0.2); }
@@ -53,7 +55,7 @@
                 <span class="material-icons-round text-sky-400 text-4xl pulse">radar</span>
                 UBONPAN <span class="text-sky-400 font-light">TACTICAL HUB</span>
             </h1>
-            <p class="text-xs text-slate-400 mt-1 ml-12">Advanced Interpolated Air Surveillance & Meteorological API</p>
+            <p class="text-xs text-slate-400 mt-1 ml-12">Portable Tactical Air Surveillance & Meteorological Hub</p>
         </div>
         <div class="flex items-center gap-4 bg-slate-900 border border-slate-700 px-5 py-2.5 rounded-full shadow-inner">
             <span id="web-time" class="font-mono text-sky-400 font-bold text-sm tracking-widest">00:00:00</span>
@@ -120,19 +122,40 @@
                     <div id="radar-blips" class="absolute inset-0"></div>
                 </div>
 
-                <!-- Radar Stats -->
-                <div class="flex-grow w-full">
-                    <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                        <span class="material-icons-round text-lg">radar</span> น่านฟ้าเรียลไทม์ (Smooth Interpolation)
+                <!-- Radar Stats & Custom Control Panel -->
+                <div class="flex-grow w-full space-y-3">
+                    <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                        <span class="material-icons-round text-lg">radar</span> ควบคุมพิกัดเรดาร์ (Custom Center)
                     </h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                            <div class="data-label">เป้าหมายในระยะ</div>
-                            <div id="target-count" class="text-3xl font-bold text-emerald-400">0</div>
+                    
+                    <div class="grid grid-cols-2 gap-3 bg-slate-900/70 p-3.5 rounded-xl border border-slate-800">
+                        <div>
+                            <div class="data-label mb-1">Latitude (ละติจูด)</div>
+                            <input type="number" step="0.0001" id="input-lat" class="radar-input" value="13.8931">
                         </div>
-                        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                            <div class="data-label">ศูนย์กลางเรดาร์</div>
-                            <div class="text-xs font-mono text-slate-300 mt-1">LAT: 13.8931° N<br>LON: 100.6139° E</div>
+                        <div>
+                            <div class="data-label mb-1">Longitude (ลองติจูด)</div>
+                            <input type="number" step="0.0001" id="input-lon" class="radar-input" value="100.6139">
+                        </div>
+                        <div>
+                            <div class="data-label mb-1">Radius (รัศมี องศา)</div>
+                            <input type="number" step="0.1" id="input-range" class="radar-input" value="0.5">
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="updateRadarCenter()" class="w-full py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors shadow-lg">
+                                อัปเดตเรดาร์
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-center">
+                            <div class="data-label">เป้าหมายในระยะ</div>
+                            <div id="target-count" class="text-2xl font-bold text-emerald-400 mt-1">0</div>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-center">
+                            <div class="data-label">สถานะพิกัดปัจจุบัน</div>
+                            <div id="current-center-txt" class="text-xs font-mono text-sky-300 mt-1">13.8931 N<br>100.6139 E</div>
                         </div>
                     </div>
                 </div>
@@ -152,11 +175,32 @@
     </main>
 
     <script>
-        const CENTER_LAT = 13.8931;
-        const CENTER_LON = 100.6139;
-        const RADAR_RANGE = 0.5;
+        // พิกัดเริ่มต้น (สามารถเปลี่ยนแปลงได้ผ่านกล่องข้อความบนหน้าเว็บ)
+        let CENTER_LAT = 13.8931;
+        let CENTER_LON = 100.6139;
+        let RADAR_RANGE = 0.5;
 
+        let rawPlanesData = [];
         let activePlanes = [];
+
+        function updateRadarCenter() {
+            const latVal = parseFloat(document.getElementById('input-lat').value);
+            const lonVal = parseFloat(document.getElementById('input-lon').value);
+            const rangeVal = parseFloat(document.getElementById('input-range').value);
+
+            if (!isNaN(latVal) && !isNaN(lonVal) && !isNaN(rangeVal)) {
+                CENTER_LAT = latVal;
+                CENTER_LON = lonVal;
+                RADAR_RANGE = rangeVal;
+
+                document.getElementById('current-center-txt').innerHTML = `${CENTER_LAT.toFixed(4)} N<br>${CENTER_LON.toFixed(4)} E`;
+                
+                // กรองข้อมูลเครื่องบินใหม่ทันทีตามพิกัดที่เปลี่ยน
+                processAndFilterPlanes(rawPlanesData);
+            } else {
+                alert("กรุณากรอกตัวเลขพิกัดให้ถูกต้อง");
+            }
+        }
 
         function getAirlineName(callsign) {
             if (!callsign || callsign === "N/A") return "Unknown Flight";
@@ -185,9 +229,8 @@
                 }
 
                 if (flightsRes && flightsRes.ok) {
-                    const flightsData = await flightsRes.json();
-                    updatePlanesData(flightsData);
-                    renderFlightCards(flightsData);
+                    rawPlanesData = await flightsRes.json();
+                    processAndFilterPlanes(rawPlanesData);
                 }
 
                 document.getElementById('sync-status').innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse shadow-[0_0_8px_#34d399]"></span> ONLINE`;
@@ -197,8 +240,13 @@
             }
         }
 
-        function updatePlanesData(newData) {
-            activePlanes = newData.map(p => {
+        function processAndFilterPlanes(allData) {
+            // กรองเอาเฉพาะเครื่องบินที่อยู่ในรัศมี (RADAR_RANGE) ที่ผู้ใช้กำหนด
+            const filtered = allData.filter(p => {
+                return Math.abs(p.lat - CENTER_LAT) <= RADAR_RANGE && Math.abs(p.lon - CENTER_LON) <= RADAR_RANGE;
+            });
+
+            activePlanes = filtered.map(p => {
                 let speedMps = p.speed || 0;
                 let headingRad = (p.heading || 0) * Math.PI / 180;
                 let dLatSec = (speedMps * Math.cos(headingRad)) / 111000;
@@ -213,6 +261,8 @@
                     lastUpdate: Date.now()
                 };
             });
+
+            renderFlightCards(filtered);
         }
 
         function animateRadarBlips() {
@@ -225,6 +275,7 @@
                 let simulatedLat = plane.currentLat + (plane.dLat * elapsedSec);
                 let simulatedLon = plane.currentLon + (plane.dLon * elapsedSec);
 
+                // คำนวณเทียบพิกัดศูนย์กลางเรดาร์ตามที่ผู้ใช้กรอก
                 let xPercent = ((simulatedLon - (CENTER_LON - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100;
                 let yPercent = 100 - (((simulatedLat - (CENTER_LAT - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100);
 
@@ -274,7 +325,7 @@
             document.getElementById('target-count').innerText = planes.length;
             
             if(planes.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-8">น่านฟ้าว่างเปล่า ไม่พบอากาศยานในระยะ ${RADAR_RANGE} องศา</div>`;
+                container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-8">น่านฟ้าว่างเปล่า ไม่พบอากาศยานในรัศมี ${RADAR_RANGE}° รอบจุดนี้</div>`;
                 return;
             }
 
@@ -286,7 +337,6 @@
                 let vertRate = (plane.vertical_rate || 0).toFixed(1);
                 let heading = Math.round(plane.heading || 0);
                 
-                // สถานะการบินไต่ระดับ / ลดระดับ / บินระดับ
                 let vRateBadge = `<span class="text-slate-400">Level (บินระดับ)</span>`;
                 if (plane.vertical_rate > 0.5) {
                     vRateBadge = `<span class="text-emerald-400 font-bold">▲ Climbing (+${vertRate} m/s)</span>`;
@@ -310,7 +360,6 @@
                             </span>
                         </div>
                         
-                        <!-- ข้อมูล Telemetry ละเอียด -->
                         <div class='grid grid-cols-2 gap-y-2.5 gap-x-2 my-3 bg-black/30 p-3 rounded-lg border border-slate-700/60'>
                             <div><div class='data-label'>Altitude (ความสูง)</div><div class='data-value text-amber-300'>${altM.toLocaleString()} m</div></div>
                             <div><div class='data-label'>Speed (ความเร็ว)</div><div class='data-value text-emerald-300'>${speedKm} km/h</div></div>
@@ -332,7 +381,6 @@
             container.innerHTML = html;
         }
 
-        // แปลงองศบทิศทางเป็นตัวอักษรย่อเข็มทิศ
         function getCompassDirection(deg) {
             const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
             return dirs[Math.round((deg % 360) / 22.5)];
