@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UBONPAN - Master Dashboard</title>
+    <title>UBONPAN - Tactical Master Radar Hub</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts & Icons -->
@@ -15,31 +15,33 @@
         body { font-family: 'Space Grotesk', sans-serif; background-color: var(--surface); color: #e0e6ed; overflow-x: hidden; }
         
         /* Glass UI */
-        .glass-panel { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(31, 41, 55, 0.8); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); }
-        .glass-card { background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; }
-        .glass-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px -5px rgba(14, 165, 233, 0.2); border-color: #0284c7; }
+        .glass-panel { background: rgba(17, 24, 39, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(31, 41, 55, 0.8); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6); }
+        .glass-card { background: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+        .glass-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px -5px rgba(14, 165, 233, 0.25); border-color: #0284c7; }
         
         /* Typography & Badges */
         .callsign { font-size: 1.25rem; font-weight: 700; font-family: monospace; letter-spacing: 1px; color: #38bdf8; }
-        .data-label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .data-value { color: #f8fafc; font-weight: 600; font-family: monospace; font-size: 1rem; }
+        .data-label { color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .data-value { color: #f8fafc; font-weight: 600; font-family: monospace; font-size: 0.95rem; }
         
-        /* Web Radar Animation */
-        .radar-container { position: relative; width: 100%; max-width: 320px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: #020617; border: 2px solid #064e3b; overflow: hidden; box-shadow: 0 0 40px rgba(16, 185, 129, 0.1); }
-        .radar-grid-bg { position: absolute; inset: 0; background-image: radial-gradient(#064e3b 1px, transparent 1px), radial-gradient(#064e3b 1px, transparent 1px); background-size: 40px 40px; background-position: 0 0, 20px 20px; opacity: 0.3; }
+        /* Tactical Radar UI */
+        .radar-container { position: relative; width: 100%; max-width: 340px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: #020617; border: 2px solid #059669; overflow: hidden; box-shadow: 0 0 50px rgba(16, 185, 129, 0.15), inset 0 0 30px rgba(5, 150, 105, 0.2); }
+        .radar-grid-bg { position: absolute; inset: 0; background-image: radial-gradient(#064e3b 1.5px, transparent 1.5px), radial-gradient(#064e3b 1.5px, transparent 1.5px); background-size: 40px 40px; background-position: 0 0, 20px 20px; opacity: 0.35; }
         .radar-crosshair { position: absolute; inset: 0; }
-        .radar-crosshair::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #064e3b; }
-        .radar-crosshair::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #064e3b; }
-        .radar-sweep { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 70%, rgba(16, 185, 129, 0.1) 90%, rgba(16, 185, 129, 0.8) 100%); animation: sweep 4s linear infinite; }
+        .radar-crosshair::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(5, 150, 105, 0.5); }
+        .radar-crosshair::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(5, 150, 105, 0.5); }
+        .radar-sweep { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 70%, rgba(16, 185, 129, 0.15) 90%, rgba(52, 211, 153, 0.7) 100%); animation: sweep 4s linear infinite; pointer-events: none; }
         @keyframes sweep { 100% { transform: rotate(360deg); } }
         
-        /* Radar Blip */
-        .blip { position: absolute; width: 8px; height: 8px; background-color: #34d399; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 10px 2px #34d399; animation: fade 4s infinite; }
-        .blip-label { position: absolute; color: #6ee7b7; font-size: 10px; font-family: monospace; transform: translate(6px, -6px); text-shadow: 0 0 2px #000; }
-        @keyframes fade { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+        /* Smooth Moving Blip */
+        .tactical-blip { position: absolute; width: 9px; height: 9px; background-color: #34d399; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 12px 3px #34d399; transition: transform 0.1s linear; z-index: 20; }
+        .tactical-blip::after { content: ''; position: absolute; inset: -4px; border: 1px solid rgba(52, 211, 153, 0.5); border-radius: 50%; animation: ping-ring 2s infinite; }
+        @keyframes ping-ring { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+        
+        .blip-label { position: absolute; color: #6ee7b7; font-size: 10px; font-weight: bold; font-family: monospace; transform: translate(8px, -8px); text-shadow: 0 0 4px #000; pointer-events: none; z-index: 25; }
 
         .pulse { animation: pulse-anim 2s infinite; }
-        @keyframes pulse-anim { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes pulse-anim { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     </style>
 </head>
 <body class="p-4 md:p-6 lg:p-8 flex flex-col items-center">
@@ -48,16 +50,16 @@
     <header class="w-full max-w-6xl flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-slate-800 gap-4">
         <div>
             <h1 class="text-2xl md:text-3xl font-bold tracking-wider text-white uppercase flex items-center gap-3">
-                <span class="material-icons-round text-sky-400 text-4xl pulse">dashboard</span>
-                UBONPAN <span class="text-sky-400 font-light">MASTER HUB</span>
+                <span class="material-icons-round text-sky-400 text-4xl pulse">radar</span>
+                UBONPAN <span class="text-sky-400 font-light">TACTICAL HUB</span>
             </h1>
-            <p class="text-xs text-slate-400 mt-1 ml-12">Integrated Weather & Flight Radar API</p>
+            <p class="text-xs text-slate-400 mt-1 ml-12">Live Interpolated Air Surveillance & Meteorological API</p>
         </div>
         <div class="flex items-center gap-4 bg-slate-900 border border-slate-700 px-5 py-2.5 rounded-full shadow-inner">
             <span id="web-time" class="font-mono text-sky-400 font-bold text-sm tracking-widest">00:00:00</span>
             <span class="text-slate-600">|</span>
             <span id="sync-status" class="text-emerald-400 flex items-center gap-2 text-xs font-semibold tracking-wide">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse shadow-[0_0_8px_#34d399]"></span> ONLINE
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse shadow-[0_0_8px_#34d399]"></span> SYSTEM ONLINE
             </span>
         </div>
     </header>
@@ -93,7 +95,7 @@
                     <div><div class="data-label">ความกดอากาศ</div><div id="w-pressure" class="data-value">-- hPa</div></div>
                     <div><div class="data-label">เมฆปกคลุม</div><div id="w-clouds" class="data-value">-- %</div></div>
                     <div><div class="data-label">ทัศนวิสัย</div><div id="w-vis" class="data-value">-- km</div></div>
-                    <div><div class="data-label">ดัชนี UV / แดด</div><div id="w-uv" class="data-value text-amber-300">--</div></div>
+                    <div><div class="data-label">สถานะเรดาร์เมฆ</div><div id="w-uv" class="data-value text-amber-300">NORMAL</div></div>
                 </div>
 
                 <!-- Smart Advisory -->
@@ -109,30 +111,28 @@
             <!-- Radar Visual & Summary -->
             <div class="glass-panel p-6 border-t-4 border-t-emerald-500 flex flex-col md:flex-row gap-6 items-center">
                 
-                <!-- Web Radar CSS -->
+                <!-- Web Radar Canvas/Container -->
                 <div class="radar-container shrink-0">
                     <div class="radar-grid-bg"></div>
                     <div class="radar-crosshair"></div>
-                    <!-- จุดศูนย์กลางเรดาร์ -->
-                    <div class="absolute w-2 h-2 bg-rose-500 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 shadow-[0_0_10px_#f43f5e]"></div>
+                    <div class="absolute w-2.5 h-2.5 bg-rose-500 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 shadow-[0_0_12px_#f43f5e]"></div>
                     <div class="radar-sweep"></div>
-                    <!-- คอนเทนเนอร์ใส่จุดเครื่องบิน -->
-                    <div id="radar-blips" class="absolute inset-0 z-20"></div>
+                    <div id="radar-blips" class="absolute inset-0"></div>
                 </div>
 
                 <!-- Radar Stats -->
                 <div class="flex-grow w-full">
                     <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                        <span class="material-icons-round text-lg">radar</span> น่านฟ้าแบบเรียลไทม์
+                        <span class="material-icons-round text-lg">radar</span> น่านฟ้าเรียลไทม์ (Smooth Interpolation)
                     </h2>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                            <div class="data-label">เครื่องบินที่ตรวจพบ</div>
+                            <div class="data-label">เป้าหมายในระยะ</div>
                             <div id="target-count" class="text-3xl font-bold text-emerald-400">0</div>
                         </div>
                         <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
-                            <div class="data-label">พิกัดศูนย์กลาง (Center)</div>
-                            <div class="text-sm font-mono text-slate-300 mt-1">13.8931 N<br>100.6139 E</div>
+                            <div class="data-label">ศูนย์กลางเรดาร์</div>
+                            <div class="text-xs font-mono text-slate-300 mt-1">LAT: 13.8931° N<br>LON: 100.6139° E</div>
                         </div>
                     </div>
                 </div>
@@ -144,7 +144,7 @@
                     <span class="material-icons-round text-lg">flight_takeoff</span> ข้อมูลอากาศยานแบบละเอียด
                 </h2>
                 <div id="flights-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="col-span-full text-center text-slate-500 py-8">กำลังโหลดข้อมูลเที่ยวบิน...</div>
+                    <div class="col-span-full text-center text-slate-500 py-8">กำลังโหลดข้อมูลน่านฟ้า...</div>
                 </div>
             </div>
 
@@ -152,28 +152,28 @@
     </main>
 
     <script>
-        // พิกัดศูนย์กลางเรดาร์ (ดอนเมือง/สะพานใหม่)
         const CENTER_LAT = 13.8931;
         const CENTER_LON = 100.6139;
-        const RADAR_RANGE = 0.5; // รัศมีเรดาร์แบบเดียวกับในบอร์ด
+        const RADAR_RANGE = 0.5;
+
+        let activePlanes = []; // เก็บข้อมูลเครื่องบินเพื่อนำมาคำนวณการเคลื่อนที่ต่อเนื่อง
 
         function getAirlineName(callsign) {
-            if (!callsign || callsign === "N/A") return "Unknown Flight (ไม่ทราบข้อมูล)";
+            if (!callsign || callsign === "N/A") return "Unknown Flight";
             let cs = callsign.toUpperCase();
-            if (cs.startsWith("THA")) return "Thai Airways";
-            if (cs.startsWith("BKP")) return "Bangkok Airways";
-            if (cs.startsWith("AIQ")) return "Thai AirAsia";
-            if (cs.startsWith("TVJ")) return "Thai Vietjet Air";
-            if (cs.startsWith("NOK")) return "Nok Air";
-            if (cs.startsWith("SLK") || cs.startsWith("THAI LION")) return "Thai Lion Air";
-            if (cs.startsWith("SCO")) return "Scoot";
-            if (cs.startsWith("SIA")) return "Singapore Airlines";
-            return "Commercial Flight";
+            if (cs.startsWith("THA")) return "Thai Airways (การบินไทย)";
+            if (cs.startsWith("BKP")) return "Bangkok Airways (บางกอกแอร์เวย์ส)";
+            if (cs.startsWith("AIQ")) return "Thai AirAsia (ไทยแอร์เอเชีย)";
+            if (cs.startsWith("TVJ")) return "Thai Vietjet Air (ไทยเวียตเจ็ท)";
+            if (cs.startsWith("NOK")) return "Nok Air (นกแอร์)";
+            if (cs.startsWith("SLK") || cs.startsWith("THAI LION")) return "Thai Lion Air (ไทยไลอ้อนแอร์)";
+            if (cs.startsWith("SCO")) return "Scoot (สกู๊ต)";
+            if (cs.startsWith("SIA")) return "Singapore Airlines (สิงคโปร์แอร์ไลน์)";
+            return "Commercial Flight (เที่ยวบินพาณิชย์ทั่วไป)";
         }
 
         async function fetchAllData() {
             try {
-                // รันโหลดทั้งสองไฟล์พร้อมกัน
                 const [weatherRes, flightsRes] = await Promise.all([
                     fetch(`weather.json?_=${Date.now()}`).catch(() => null),
                     fetch(`flights.json?_=${Date.now()}`).catch(() => null)
@@ -186,7 +186,7 @@
 
                 if (flightsRes && flightsRes.ok) {
                     const flightsData = await flightsRes.json();
-                    renderRadarVisual(flightsData);
+                    updatePlanesData(flightsData);
                     renderFlightCards(flightsData);
                 }
 
@@ -197,59 +197,83 @@
             }
         }
 
-        function renderWeather(data) {
-            document.getElementById('w-temp').innerText = (data.temp || 0).toFixed(1);
-            document.getElementById('w-feels').innerText = (data.feels_like || data.temp || 0).toFixed(1);
-            document.getElementById('w-desc').innerText = data.desc || "UNKNOWN";
-            document.getElementById('w-hum').innerText = `${data.hum || 0} %`;
-            
-            // ลม (m/s เป็น km/h)
-            let windKm = (data.wind || data.wind_speed || 0) * 3.6;
-            document.getElementById('w-wind').innerText = `${windKm.toFixed(1)} km/h`;
-            
-            document.getElementById('w-pressure').innerText = `${data.pressure || '--'} hPa`;
-            document.getElementById('w-clouds').innerText = `${data.clouds || '--'} %`;
-            
-            let visKm = (data.visibility || 0) / 1000;
-            document.getElementById('w-vis').innerText = visKm > 0 ? `${visKm.toFixed(1)} km` : '-- km';
-            
-            // Smart Advisory (ลอจิกคล้ายกับในบอร์ด ESP32)
-            let adviceBox = document.getElementById('w-advice');
-            let id = data.id || 800;
-            if (id >= 200 && id < 300) {
-                adviceBox.className = "mt-4 p-3 rounded-lg bg-rose-900/30 border border-rose-800 text-rose-400 text-center text-sm font-medium";
-                adviceBox.innerText = "⚠️ อันตราย: มีพายุฝนฟ้าคะนอง งดกิจกรรมกลางแจ้ง แนนบอก";
-            } else if (id >= 300 && id < 600) {
-                adviceBox.className = "mt-4 p-3 rounded-lg bg-sky-900/30 border border-sky-800 text-sky-400 text-center text-sm font-medium";
-                adviceBox.innerText = "🌧️ มีฝนตก: เตรียมร่มหรือเสื้อกันฝน จูนบอก";
-            } else if (data.temp > 35) {
-                adviceBox.className = "mt-4 p-3 rounded-lg bg-orange-900/30 border border-orange-800 text-orange-400 text-center text-sm font-medium";
-                adviceBox.innerText = "🔥 อากาศร้อนจัด: ระวังฮีทสโตรก ดื่มน้ำมากๆ พี่แป้งบอก";
-            } else {
-                adviceBox.className = "mt-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-800 text-emerald-400 text-center text-sm font-medium";
-                adviceBox.innerText = "✅ สภาพอากาศปกติ เหมาะสมกับการปฏิบัติงาน พี่กิ๊ฟบอก";
-            }
+        function updatePlanesData(newData) {
+            // แปลงข้อมูลใหม่และเตรียมเวกเตอร์ความเร็วสำหรับการเคลื่อนที่
+            activePlanes = newData.map(p => {
+                let speedMps = p.speed || 0; // เมตรต่อวินาที
+                let headingRad = (p.heading || 0) * Math.PI / 180;
+                
+                // คำนวณความเร็วเปลี่ยนไปทาง Lat/Lon ต่อวินาที
+                // 1 องศา ละติจูด ~= 111,000 เมตร
+                let dLatSec = (speedMps * Math.cos(headingRad)) / 111000;
+                let dLonSec = (speedMps * Math.sin(headingRad)) / (111000 * Math.cos(CENTER_LAT * Math.PI / 180));
+
+                return {
+                    ...p,
+                    currentLat: p.lat,
+                    currentLon: p.lon,
+                    dLat: dLatSec,
+                    dLon: dLonSec,
+                    lastUpdate: Date.now()
+                };
+            });
         }
 
-        function renderRadarVisual(planes) {
+        // ฟังก์ชันลูปแอนิเมชันให้จุดขยับไหลลื่นทุกๆ เฟรม
+        function animateRadarBlips() {
             const blipsContainer = document.getElementById('radar-blips');
-            blipsContainer.innerHTML = ''; // Clear old blips
+            blipsContainer.innerHTML = '';
 
-            planes.forEach(plane => {
-                // คำนวณ % บนจอเรดาร์ (เหมือนโค้ดใน ESP32)
-                let xPercent = ((plane.lon - (CENTER_LON - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100;
-                // Y สลับแกนเพราะหน้าจอเว็บแกน Y ทิ่มลง
-                let yPercent = 100 - (((plane.lat - (CENTER_LAT - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100);
+            let now = Date.now();
 
-                // กรองให้อยู่ในกรอบจอเรดาร์เท่านั้น
-                if(xPercent >= 0 && xPercent <= 100 && yPercent >= 0 && yPercent <= 100) {
+            activePlanes.forEach(plane => {
+                // คำนวณเวลาที่ผ่านไปเพื่อขยับตำแหน่งเครื่องบินตามความเร็วและทิศทางจริง
+                let elapsedSec = (now - plane.lastUpdate) / 1000;
+                let simulatedLat = plane.currentLat + (plane.dLat * elapsedSec);
+                let simulatedLon = plane.currentLon + (plane.dLon * elapsedSec);
+
+                let xPercent = ((simulatedLon - (CENTER_LON - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100;
+                let yPercent = 100 - (((simulatedLat - (CENTER_LAT - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100);
+
+                if (xPercent >= 0 && xPercent <= 100 && yPercent >= 0 && yPercent <= 100) {
                     let blipHtml = `
-                        <div class="blip" style="left: ${xPercent}%; top: ${yPercent}%;"></div>
+                        <div class="tactical-blip" style="left: ${xPercent}%; top: ${yPercent}%;"></div>
                         <div class="blip-label" style="left: ${xPercent}%; top: ${yPercent}%;">${plane.callsign.trim()}</div>
                     `;
                     blipsContainer.insertAdjacentHTML('beforeend', blipHtml);
                 }
             });
+
+            requestAnimationFrame(animateRadarBlips);
+        }
+
+        function renderWeather(data) {
+            document.getElementById('w-temp').innerText = (data.temp || 0).toFixed(1);
+            document.getElementById('w-feels').innerText = (data.feels_like || data.temp || 0).toFixed(1);
+            document.getElementById('w-desc').innerText = data.desc || "UNKNOWN";
+            document.getElementById('w-hum').innerText = `${data.hum || 0} %`;
+            let windKm = (data.wind || 0) * 3.6;
+            document.getElementById('w-wind').innerText = `${windKm.toFixed(1)} km/h`;
+            document.getElementById('w-pressure').innerText = `${data.pressure || '--'} hPa`;
+            document.getElementById('w-clouds').innerText = `${data.clouds || '--'} %`;
+            let visKm = (data.visibility || 0) / 1000;
+            document.getElementById('w-vis').innerText = visKm > 0 ? `${visKm.toFixed(1)} km` : '-- km';
+
+            let adviceBox = document.getElementById('w-advice');
+            let id = data.id || 800;
+            if (id >= 200 && id < 300) {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-rose-900/30 border border-rose-800 text-rose-400 text-center text-sm font-medium";
+                adviceBox.innerText = "⚠️ แจ้งเตือน: มีพายุฝนฟ้าคะนองในพื้นที่";
+            } else if (id >= 300 && id < 600) {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-sky-900/30 border border-sky-800 text-sky-400 text-center text-sm font-medium";
+                adviceBox.innerText = "🌧️ ตรวจพบฝนตกในรัศมีเรดาร์";
+            } else if (data.temp > 35) {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-orange-900/30 border border-orange-800 text-orange-400 text-center text-sm font-medium";
+                adviceBox.innerText = "🔥 อุณหภูมิสูงกว่าปกติ ระวังเรื่องความร้อน";
+            } else {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-800 text-emerald-400 text-center text-sm font-medium";
+                adviceBox.innerText = "✅ สภาพอากาศในพื้นที่ปกติ ปลอดภัย";
+            }
         }
 
         function renderFlightCards(planes) {
@@ -262,7 +286,7 @@
             }
 
             let html = "";
-            planes.forEach((plane, i) => {
+            planes.forEach((plane) => {
                 let airline = getAirlineName(plane.callsign);
                 let speedKm = Math.round((plane.speed || 0) * 3.6);
                 let altM = Math.round(plane.alt || 0);
@@ -272,7 +296,7 @@
                     <div class='flex justify-between items-start mb-3'>
                         <div>
                             <div class='callsign flex items-center gap-1'>
-                                <span class="material-icons-round text-base">flight</span>
+                                <span class="material-icons-round text-base text-sky-400">flight</span>
                                 ${plane.callsign}
                             </div>
                             <div class='text-xs text-sky-200 opacity-80 mt-1'>${airline}</div>
@@ -288,16 +312,21 @@
                     
                     <a href='https://maps.google.com/?q=${plane.lat},${plane.lon}' target='_blank' 
                        class='mt-4 flex items-center justify-center gap-2 w-full py-2 bg-sky-900/30 hover:bg-sky-800/50 text-sky-300 text-sm font-medium rounded-lg border border-sky-800/50 transition-colors'>
-                        <span class="material-icons-round text-[18px]">place</span> ดูพิกัดบน Google Maps
+                        <span class="material-icons-round text-[18px]">place</span> เปิดพิกัดสดบน Google Maps
                     </a>
                 </div>`;
             });
             container.innerHTML = html;
         }
 
-        // Initialize & Timers
+        // เริ่มระบบดึงข้อมูลและรันแอนิเมชันเรดาร์แบบสมูท
         fetchAllData();
-        setInterval(fetchAllData, 30000); // อัปเดตข้อมูลทุก 30 วินาที
+        requestAnimationFrame(animateRadarBlips);
+
+        // ดึงข้อมูลใหม่จาก JSON ทุก 30 วินาที
+        setInterval(fetchAllData, 30000); 
+
+        // นาฬิกาดิจิทัลเดินทุกวินาที
         setInterval(() => { 
             document.getElementById('web-time').innerText = new Date().toLocaleTimeString('en-GB'); 
         }, 1000);
