@@ -54,16 +54,28 @@ def update_flights():
                 callsign = str(state[1]).strip() if state[1] else "N/A"
                 if callsign == "": callsign = "N/A"
                 
-                # เพิ่ม heading (ทิศทางการบิน state[10]) เพื่อใช้คำนวณการเคลื่อนที่บนเว็บ
-                heading = state[10] if state[10] is not None else 0.0
+                # เพิ่มข้อมูลเชิงลึกจาก OpenSky API (ตามลำดับ Index มาตรฐาน)
+                icao24 = state[0] or "N/A"        # รหัสประจำตัวเครื่องบิน (ICAO 24-bit address)
+                origin_country = state[2] or "N/A"# ประเทศที่จดทะเบียน
+                baro_altitude = state[7]          # ความสูงแบบ Barometric
+                on_ground = state[8]              # อยู่บนพื้นดินหรือไม่ (True/False)
+                velocity = state[9] or 0.0        # ความเร็ว (m/s)
+                heading = state[10] or 0.0        # ทิศทางการบิน (Degrees)
+                vertical_rate = state[11] or 0.0  # อัตราการไต่/ลง (m/s)
+                squawk = state[14] or "N/A"       # รหัส Transponder Squawk
                 
                 flights.append({
                     "callsign": callsign,
+                    "icao24": icao24,
+                    "country": origin_country,
                     "lon": lon,
                     "lat": lat,
-                    "alt": state[7] or 0.0,
-                    "speed": state[9] or 0.0,
-                    "heading": heading
+                    "alt": baro_altitude if baro_altitude is not None else 0.0,
+                    "speed": velocity,
+                    "heading": heading,
+                    "vertical_rate": vertical_rate,
+                    "on_ground": on_ground,
+                    "squawk": squawk
                 })
         
         with open('flights.json', 'w') as f:
