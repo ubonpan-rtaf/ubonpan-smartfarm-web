@@ -218,13 +218,13 @@
             let id = data.id || 800;
             if (id >= 200 && id < 300) {
                 adviceBox.className = "mt-4 p-3 rounded-lg bg-rose-900/30 border border-rose-800 text-rose-400 text-center text-sm font-medium";
-                adviceBox.innerText = "⚠️ อันตราย: มีพายุฝนฟ้าคะนอง งดกิจกรรมกลางแจ้ง";
+                adviceBox.innerText = "⚠️ อันตราย: มีพายุฝนฟ้าคะนอง งดกิจกรรมกลางแจ้ง แนนบอก";
             } else if (id >= 300 && id < 600) {
                 adviceBox.className = "mt-4 p-3 rounded-lg bg-sky-900/30 border border-sky-800 text-sky-400 text-center text-sm font-medium";
-                adviceBox.innerText = "🌧️ มีฝนตก: เตรียมร่มหรือเสื้อกันฝน";
+                adviceBox.innerText = "🌧️ มีฝนตก: เตรียมร่มหรือเสื้อกันฝน จูนบอก";
             } else if (data.temp > 35) {
                 adviceBox.className = "mt-4 p-3 rounded-lg bg-orange-900/30 border border-orange-800 text-orange-400 text-center text-sm font-medium";
-                adviceBox.innerText = "🔥 อากาศร้อนจัด: ระวังฮีทสโตรก ดื่มน้ำมากๆ";
+                adviceBox.innerText = "🔥 อากาศร้อนจัด: ระวังฮีทสโตรก ดื่มน้ำมากๆ พี่แป้งบอก";
             } else {
                 adviceBox.className = "mt-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-800 text-emerald-400 text-center text-sm font-medium";
                 adviceBox.innerText = "✅ สภาพอากาศปกติ เหมาะสมกับการปฏิบัติงาน พี่กิ๊ฟบอก";
