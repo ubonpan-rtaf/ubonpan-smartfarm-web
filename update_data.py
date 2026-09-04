@@ -14,9 +14,9 @@ LOMIN = CENTER_LON - RADAR_RANGE
 LOMAX = CENTER_LON + RADAR_RANGE
 
 # ดึงรหัสผ่านจาก GitHub Secrets
-WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
-OPENSKY_USER = os.getenv('OPENSKY_USER')
-OPENSKY_PASS = os.getenv('OPENSKY_PASS')
+WEATHER_API_KEY = os.getenv('5e88796cca9c0d5f8090cc84ea86d59d')
+OPENSKY_USER = os.getenv('ujindapan@gmail.com')
+OPENSKY_PASS = os.getenv('Bomba021992')
 
 def update_weather():
     url = f"http://api.openweathermap.org/data/2.5/weather?lat=13.912300&lon=100.620000&appid={WEATHER_API_KEY}&units=metric"
