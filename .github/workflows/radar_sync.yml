@@ -1,0 +1,39 @@
+name: Radar Data Sync
+
+on:
+  schedule:
+    - cron: '*/2 * * * *' # รันอัตโนมัติทุกๆ 2 นาที
+  workflow_dispatch: # อนุญาตให้กดรันแบบ Manual ได้ด้วย
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      - name: Run Data Updater
+        env:
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+          OPENSKY_USER: ${{ secrets.OPENSKY_USER }}
+          OPENSKY_PASS: ${{ secrets.OPENSKY_PASS }}
+        run: python update_data.py
+
+      - name: Commit and Push JSON files
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add weather.json flights.json
+          git commit -m "Auto-update radar & weather data" || exit 0
+          git push
