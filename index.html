@@ -21,8 +21,8 @@
         
         /* Typography & Badges */
         .callsign { font-size: 1.25rem; font-weight: 700; font-family: monospace; letter-spacing: 1px; color: #38bdf8; }
-        .data-label { color: #64748b; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
-        .data-value { color: #f8fafc; font-weight: 600; font-family: monospace; font-size: 0.95rem; }
+        .data-label { color: #64748b; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .data-value { color: #f8fafc; font-weight: 600; font-family: monospace; font-size: 0.9rem; }
         
         /* Tactical Radar UI */
         .radar-container { position: relative; width: 100%; max-width: 340px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: #020617; border: 2px solid #059669; overflow: hidden; box-shadow: 0 0 50px rgba(16, 185, 129, 0.15), inset 0 0 30px rgba(5, 150, 105, 0.2); }
@@ -53,7 +53,7 @@
                 <span class="material-icons-round text-sky-400 text-4xl pulse">radar</span>
                 UBONPAN <span class="text-sky-400 font-light">TACTICAL HUB</span>
             </h1>
-            <p class="text-xs text-slate-400 mt-1 ml-12">Live Interpolated Air Surveillance & Meteorological API</p>
+            <p class="text-xs text-slate-400 mt-1 ml-12">Advanced Interpolated Air Surveillance & Meteorological API</p>
         </div>
         <div class="flex items-center gap-4 bg-slate-900 border border-slate-700 px-5 py-2.5 rounded-full shadow-inner">
             <span id="web-time" class="font-mono text-sky-400 font-bold text-sm tracking-widest">00:00:00</span>
@@ -141,7 +141,7 @@
             <!-- Flight Details Cards -->
             <div class="glass-panel p-6">
                 <h2 class="text-sm font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-                    <span class="material-icons-round text-lg">flight_takeoff</span> ข้อมูลอากาศยานแบบละเอียด
+                    <span class="material-icons-round text-lg">flight_takeoff</span> ข้อมูลอากาศยานเชิงลึก (Advanced Telemetry)
                 </h2>
                 <div id="flights-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="col-span-full text-center text-slate-500 py-8">กำลังโหลดข้อมูลน่านฟ้า...</div>
@@ -156,7 +156,7 @@
         const CENTER_LON = 100.6139;
         const RADAR_RANGE = 0.5;
 
-        let activePlanes = []; // เก็บข้อมูลเครื่องบินเพื่อนำมาคำนวณการเคลื่อนที่ต่อเนื่อง
+        let activePlanes = [];
 
         function getAirlineName(callsign) {
             if (!callsign || callsign === "N/A") return "Unknown Flight";
@@ -198,13 +198,9 @@
         }
 
         function updatePlanesData(newData) {
-            // แปลงข้อมูลใหม่และเตรียมเวกเตอร์ความเร็วสำหรับการเคลื่อนที่
             activePlanes = newData.map(p => {
-                let speedMps = p.speed || 0; // เมตรต่อวินาที
+                let speedMps = p.speed || 0;
                 let headingRad = (p.heading || 0) * Math.PI / 180;
-                
-                // คำนวณความเร็วเปลี่ยนไปทาง Lat/Lon ต่อวินาที
-                // 1 องศา ละติจูด ~= 111,000 เมตร
                 let dLatSec = (speedMps * Math.cos(headingRad)) / 111000;
                 let dLonSec = (speedMps * Math.sin(headingRad)) / (111000 * Math.cos(CENTER_LAT * Math.PI / 180));
 
@@ -219,15 +215,12 @@
             });
         }
 
-        // ฟังก์ชันลูปแอนิเมชันให้จุดขยับไหลลื่นทุกๆ เฟรม
         function animateRadarBlips() {
             const blipsContainer = document.getElementById('radar-blips');
             blipsContainer.innerHTML = '';
-
             let now = Date.now();
 
             activePlanes.forEach(plane => {
-                // คำนวณเวลาที่ผ่านไปเพื่อขยับตำแหน่งเครื่องบินตามความเร็วและทิศทางจริง
                 let elapsedSec = (now - plane.lastUpdate) / 1000;
                 let simulatedLat = plane.currentLat + (plane.dLat * elapsedSec);
                 let simulatedLon = plane.currentLon + (plane.dLon * elapsedSec);
@@ -290,28 +283,48 @@
                 let airline = getAirlineName(plane.callsign);
                 let speedKm = Math.round((plane.speed || 0) * 3.6);
                 let altM = Math.round(plane.alt || 0);
+                let vertRate = (plane.vertical_rate || 0).toFixed(1);
+                let heading = Math.round(plane.heading || 0);
                 
+                // สถานะการบินไต่ระดับ / ลดระดับ / บินระดับ
+                let vRateBadge = `<span class="text-slate-400">Level (บินระดับ)</span>`;
+                if (plane.vertical_rate > 0.5) {
+                    vRateBadge = `<span class="text-emerald-400 font-bold">▲ Climbing (+${vertRate} m/s)</span>`;
+                } else if (plane.vertical_rate < -0.5) {
+                    vRateBadge = `<span class="text-amber-400 font-bold">▼ Descending (${vertRate} m/s)</span>`;
+                }
+
                 html += `
-                <div class='glass-card p-4 border-l-4 border-l-sky-400'>
-                    <div class='flex justify-between items-start mb-3'>
-                        <div>
-                            <div class='callsign flex items-center gap-1'>
-                                <span class="material-icons-round text-base text-sky-400">flight</span>
-                                ${plane.callsign}
+                <div class='glass-card p-4 border-l-4 border-l-sky-400 flex flex-col justify-between'>
+                    <div>
+                        <div class='flex justify-between items-start mb-2'>
+                            <div>
+                                <div class='callsign flex items-center gap-1'>
+                                    <span class="material-icons-round text-base text-sky-400">flight</span>
+                                    ${plane.callsign}
+                                </div>
+                                <div class='text-xs text-sky-200 opacity-80'>${airline}</div>
                             </div>
-                            <div class='text-xs text-sky-200 opacity-80 mt-1'>${airline}</div>
+                            <span class='text-[10px] font-mono px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700'>
+                                ${plane.country}
+                            </span>
+                        </div>
+                        
+                        <!-- ข้อมูล Telemetry ละเอียด -->
+                        <div class='grid grid-cols-2 gap-y-2.5 gap-x-2 my-3 bg-black/30 p-3 rounded-lg border border-slate-700/60'>
+                            <div><div class='data-label'>Altitude (ความสูง)</div><div class='data-value text-amber-300'>${altM.toLocaleString()} m</div></div>
+                            <div><div class='data-label'>Speed (ความเร็ว)</div><div class='data-value text-emerald-300'>${speedKm} km/h</div></div>
+                            <div><div class='data-label'>Heading (ทิศทาง)</div><div class='data-value text-sky-300'>${heading}° (${getCompassDirection(heading)})</div></div>
+                            <div><div class='data-label'>Vertical Rate</div><div class='data-value text-xs'>${vRateBadge}</div></div>
+                            <div><div class='data-label'>ICAO Code</div><div class='data-value text-xs font-mono text-slate-400'>${plane.icao24}</div></div>
+                            <div><div class='data-label'>Squawk (Transponder)</div><div class='data-value text-xs font-mono text-purple-300'>${plane.squawk}</div></div>
+                            <div><div class='data-label'>Latitude</div><div class='data-value text-xs'>${parseFloat(plane.lat).toFixed(4)}</div></div>
+                            <div><div class='data-label'>Longitude</div><div class='data-value text-xs'>${parseFloat(plane.lon).toFixed(4)}</div></div>
                         </div>
                     </div>
                     
-                    <div class='grid grid-cols-2 gap-y-3 gap-x-2 mt-4 bg-black/20 p-3 rounded-lg border border-slate-700/50'>
-                        <div><div class='data-label'>Altitude</div><div class='data-value text-amber-300'>${altM.toLocaleString()} m</div></div>
-                        <div><div class='data-label'>Speed</div><div class='data-value text-emerald-300'>${speedKm} km/h</div></div>
-                        <div><div class='data-label'>Latitude</div><div class='data-value text-xs'>${parseFloat(plane.lat).toFixed(4)}</div></div>
-                        <div><div class='data-label'>Longitude</div><div class='data-value text-xs'>${parseFloat(plane.lon).toFixed(4)}</div></div>
-                    </div>
-                    
                     <a href='https://maps.google.com/?q=${plane.lat},${plane.lon}' target='_blank' 
-                       class='mt-4 flex items-center justify-center gap-2 w-full py-2 bg-sky-900/30 hover:bg-sky-800/50 text-sky-300 text-sm font-medium rounded-lg border border-sky-800/50 transition-colors'>
+                       class='mt-2 flex items-center justify-center gap-2 w-full py-2 bg-sky-900/30 hover:bg-sky-800/50 text-sky-300 text-sm font-medium rounded-lg border border-sky-800/50 transition-colors'>
                         <span class="material-icons-round text-[18px]">place</span> เปิดพิกัดสดบน Google Maps
                     </a>
                 </div>`;
@@ -319,14 +332,15 @@
             container.innerHTML = html;
         }
 
-        // เริ่มระบบดึงข้อมูลและรันแอนิเมชันเรดาร์แบบสมูท
+        // แปลงองศบทิศทางเป็นตัวอักษรย่อเข็มทิศ
+        function getCompassDirection(deg) {
+            const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+            return dirs[Math.round((deg % 360) / 22.5)];
+        }
+
         fetchAllData();
         requestAnimationFrame(animateRadarBlips);
-
-        // ดึงข้อมูลใหม่จาก JSON ทุก 30 วินาที
         setInterval(fetchAllData, 30000); 
-
-        // นาฬิกาดิจิทัลเดินทุกวินาที
         setInterval(() => { 
             document.getElementById('web-time').innerText = new Date().toLocaleTimeString('en-GB'); 
         }, 1000);
