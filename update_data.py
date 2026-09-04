@@ -3,9 +3,10 @@ import json
 import requests
 from requests.auth import HTTPBasicAuth
 
+# ตั้งค่ากรอบเขตเริ่มต้น (ครอบคลุมกรุงเทพฯ และปริมณฑลแบบกว้าง)
 CENTER_LAT = 13.893106
 CENTER_LON = 100.613921
-RADAR_RANGE = 0.5
+RADAR_RANGE = 1.5  # ขยายขอบเขตเริ่มต้นให้กว้างขึ้นเผื่อการย้ายพิกัด
 
 LAMIN = CENTER_LAT - RADAR_RANGE
 LAMAX = CENTER_LAT + RADAR_RANGE
@@ -54,15 +55,14 @@ def update_flights():
                 callsign = str(state[1]).strip() if state[1] else "N/A"
                 if callsign == "": callsign = "N/A"
                 
-                # เพิ่มข้อมูลเชิงลึกจาก OpenSky API (ตามลำดับ Index มาตรฐาน)
-                icao24 = state[0] or "N/A"        # รหัสประจำตัวเครื่องบิน (ICAO 24-bit address)
-                origin_country = state[2] or "N/A"# ประเทศที่จดทะเบียน
-                baro_altitude = state[7]          # ความสูงแบบ Barometric
-                on_ground = state[8]              # อยู่บนพื้นดินหรือไม่ (True/False)
-                velocity = state[9] or 0.0        # ความเร็ว (m/s)
-                heading = state[10] or 0.0        # ทิศทางการบิน (Degrees)
-                vertical_rate = state[11] or 0.0  # อัตราการไต่/ลง (m/s)
-                squawk = state[14] or "N/A"       # รหัส Transponder Squawk
+                icao24 = state[0] or "N/A"
+                origin_country = state[2] or "N/A"
+                baro_altitude = state[7]
+                on_ground = state[8]
+                velocity = state[9] or 0.0
+                heading = state[10] or 0.0
+                vertical_rate = state[11] or 0.0
+                squawk = state[14] or "N/A"
                 
                 flights.append({
                     "callsign": callsign,
