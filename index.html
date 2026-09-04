@@ -3,122 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UBONPAN - Live Flight Radar</title>
+    <title>UBONPAN - Master Dashboard</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
     <style>
         :root { --primary: #0ea5e9; --surface: #080c14; }
-        body { font-family: 'Space Grotesk', sans-serif; background-color: var(--surface); color: #e0e6ed; }
-        .glass-card { background: #111827; border: 1px solid #1f2937; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
-        .plane-card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); }
-        .plane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .callsign { font-size: 20px; font-weight: bold; font-family: monospace; letter-spacing: 1px; }
-        .airline-info { font-size: 13px; color: #38bdf8; margin-bottom: 12px; font-style: italic; }
-        .badge { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px currentColor; }
-        .radar-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 13px; color: #cbd5e1; background: #0b1120; padding: 10px 12px; border-radius: 8px; }
-        .val { color: #fff; font-weight: 600; font-family: monospace; }
-        .map-btn { display: block; text-align: center; background: #00f0ff15; border: 1px solid #00f0ff40; color: #00f0ff; padding: 10px; border-radius: 8px; text-decoration: none; margin-top: 12px; font-weight: 500; font-size: 13px; transition: 0.2s; }
-        .map-btn:hover { background: #00f0ff25; }
+        body { font-family: 'Space Grotesk', sans-serif; background-color: var(--surface); color: #e0e6ed; overflow-x: hidden; }
+        
+        /* Glass UI */
+        .glass-panel { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(31, 41, 55, 0.8); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); }
+        .glass-card { background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; }
+        .glass-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px -5px rgba(14, 165, 233, 0.2); border-color: #0284c7; }
+        
+        /* Typography & Badges */
+        .callsign { font-size: 1.25rem; font-weight: 700; font-family: monospace; letter-spacing: 1px; color: #38bdf8; }
+        .data-label { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .data-value { color: #f8fafc; font-weight: 600; font-family: monospace; font-size: 1rem; }
+        
+        /* Web Radar Animation */
+        .radar-container { position: relative; width: 100%; max-width: 320px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: #020617; border: 2px solid #064e3b; overflow: hidden; box-shadow: 0 0 40px rgba(16, 185, 129, 0.1); }
+        .radar-grid-bg { position: absolute; inset: 0; background-image: radial-gradient(#064e3b 1px, transparent 1px), radial-gradient(#064e3b 1px, transparent 1px); background-size: 40px 40px; background-position: 0 0, 20px 20px; opacity: 0.3; }
+        .radar-crosshair { position: absolute; inset: 0; }
+        .radar-crosshair::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #064e3b; }
+        .radar-crosshair::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #064e3b; }
+        .radar-sweep { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 70%, rgba(16, 185, 129, 0.1) 90%, rgba(16, 185, 129, 0.8) 100%); animation: sweep 4s linear infinite; }
+        @keyframes sweep { 100% { transform: rotate(360deg); } }
+        
+        /* Radar Blip */
+        .blip { position: absolute; width: 8px; height: 8px; background-color: #34d399; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 10px 2px #34d399; animation: fade 4s infinite; }
+        .blip-label { position: absolute; color: #6ee7b7; font-size: 10px; font-family: monospace; transform: translate(6px, -6px); text-shadow: 0 0 2px #000; }
+        @keyframes fade { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+
+        .pulse { animation: pulse-anim 2s infinite; }
+        @keyframes pulse-anim { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+<body class="p-4 md:p-6 lg:p-8 flex flex-col items-center">
 
-    <header class="w-full max-w-4xl flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-800 pb-4 gap-4">
+    <!-- Header -->
+    <header class="w-full max-w-6xl flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b border-slate-800 gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-wider text-white uppercase flex items-center gap-2">
-                <span class="material-icons-round text-sky-400 text-3xl">radar</span>
-                UBONPAN <span class="text-sky-400">Flight Radar Hub</span>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-wider text-white uppercase flex items-center gap-3">
+                <span class="material-icons-round text-sky-400 text-4xl pulse">dashboard</span>
+                UBONPAN <span class="text-sky-400 font-light">MASTER HUB</span>
             </h1>
-            <p class="text-xs text-slate-400 mt-1">Processed via GitHub Actions & OpenSky Network</p>
+            <p class="text-xs text-slate-400 mt-1 ml-12">Integrated Weather & Flight Radar API</p>
         </div>
-        <div class="flex items-center gap-3 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-xs">
-            <span id="web-time" class="font-mono text-sky-400 font-bold">00:00:00</span>
+        <div class="flex items-center gap-4 bg-slate-900 border border-slate-700 px-5 py-2.5 rounded-full shadow-inner">
+            <span id="web-time" class="font-mono text-sky-400 font-bold text-sm tracking-widest">00:00:00</span>
             <span class="text-slate-600">|</span>
-            <span id="radar-status" class="text-emerald-400">● SYNCED WITH GITHUB</span>
+            <span id="sync-status" class="text-emerald-400 flex items-center gap-2 text-xs font-semibold tracking-wide">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse shadow-[0_0_8px_#34d399]"></span> ONLINE
+            </span>
         </div>
     </header>
 
-    <main class="w-full max-w-4xl space-y-4">
-        <div class="glass-card p-6 border-t-4 border-t-sky-500">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-sm font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2">
-                    <span class="material-icons-round">flight</span> เที่ยวบินที่ตรวจพบในรัศมีเรดาร์
+    <!-- Main Grid Layout -->
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- ================= LEFT COLUMN: WEATHER ================= -->
+        <section class="lg:col-span-1 space-y-6">
+            <div class="glass-panel p-6 border-t-4 border-t-amber-500 relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 opacity-5 pointer-events-none">
+                    <span class="material-icons-round" style="font-size: 150px;">thermostat</span>
+                </div>
+                
+                <h2 class="text-sm font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+                    <span class="material-icons-round text-lg">cloud</span> สภาพอากาศแบบละเอียด (API)
                 </h2>
-                <span id="target-count" class="text-xs font-mono bg-sky-950 text-sky-300 px-3 py-1 rounded-full border border-sky-800">TARGETS: 0</span>
+                
+                <!-- Main Temp -->
+                <div class="flex items-end gap-2 mb-6">
+                    <span id="w-temp" class="text-5xl font-bold text-white tracking-tighter">--</span>
+                    <span class="text-2xl text-amber-400 mb-1">°C</span>
+                    <div class="ml-auto text-right">
+                        <div id="w-desc" class="text-sm font-medium text-slate-300 uppercase">Loading...</div>
+                        <div class="text-xs text-slate-500">FEELS LIKE <span id="w-feels">--</span>°C</div>
+                    </div>
+                </div>
+
+                <!-- Weather Grid -->
+                <div class="grid grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                    <div><div class="data-label">ความชื้นสัมพัทธ์</div><div id="w-hum" class="data-value text-sky-300">-- %</div></div>
+                    <div><div class="data-label">ความเร็วลม</div><div id="w-wind" class="data-value text-emerald-300">-- km/h</div></div>
+                    <div><div class="data-label">ความกดอากาศ</div><div id="w-pressure" class="data-value">-- hPa</div></div>
+                    <div><div class="data-label">เมฆปกคลุม</div><div id="w-clouds" class="data-value">-- %</div></div>
+                    <div><div class="data-label">ทัศนวิสัย</div><div id="w-vis" class="data-value">-- km</div></div>
+                    <div><div class="data-label">ดัชนี UV / แดด</div><div id="w-uv" class="data-value text-amber-300">--</div></div>
+                </div>
+
+                <!-- Smart Advisory -->
+                <div id="w-advice" class="mt-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-800 text-emerald-400 text-center text-sm font-medium">
+                    กำลังวิเคราะห์สภาพอากาศ...
+                </div>
             </div>
+        </section>
+
+        <!-- ================= RIGHT COLUMN: RADAR & FLIGHTS ================= -->
+        <section class="lg:col-span-2 space-y-6">
             
-            <div id="flight-radar-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="col-span-full text-center text-slate-500 py-12">กำลังโหลดข้อมูลจาก GitHub...</div>
+            <!-- Radar Visual & Summary -->
+            <div class="glass-panel p-6 border-t-4 border-t-emerald-500 flex flex-col md:flex-row gap-6 items-center">
+                
+                <!-- Web Radar CSS -->
+                <div class="radar-container shrink-0">
+                    <div class="radar-grid-bg"></div>
+                    <div class="radar-crosshair"></div>
+                    <!-- จุดศูนย์กลางเรดาร์ -->
+                    <div class="absolute w-2 h-2 bg-rose-500 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 shadow-[0_0_10px_#f43f5e]"></div>
+                    <div class="radar-sweep"></div>
+                    <!-- คอนเทนเนอร์ใส่จุดเครื่องบิน -->
+                    <div id="radar-blips" class="absolute inset-0 z-20"></div>
+                </div>
+
+                <!-- Radar Stats -->
+                <div class="flex-grow w-full">
+                    <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+                        <span class="material-icons-round text-lg">radar</span> น่านฟ้าแบบเรียลไทม์
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                            <div class="data-label">เครื่องบินที่ตรวจพบ</div>
+                            <div id="target-count" class="text-3xl font-bold text-emerald-400">0</div>
+                        </div>
+                        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                            <div class="data-label">พิกัดศูนย์กลาง (Center)</div>
+                            <div class="text-sm font-mono text-slate-300 mt-1">13.8931 N<br>100.6139 E</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <!-- Flight Details Cards -->
+            <div class="glass-panel p-6">
+                <h2 class="text-sm font-bold text-sky-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+                    <span class="material-icons-round text-lg">flight_takeoff</span> ข้อมูลอากาศยานแบบละเอียด
+                </h2>
+                <div id="flights-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-full text-center text-slate-500 py-8">กำลังโหลดข้อมูลเที่ยวบิน...</div>
+                </div>
+            </div>
+
+        </section>
     </main>
 
     <script>
-        const planeHexColors = ["#00f0ff", "#ff00ff", "#ffe600", "#ff8000", "#ffffff"];
+        // พิกัดศูนย์กลางเรดาร์ (ดอนเมือง/สะพานใหม่)
+        const CENTER_LAT = 13.8931;
+        const CENTER_LON = 100.6139;
+        const RADAR_RANGE = 0.5; // รัศมีเรดาร์แบบเดียวกับในบอร์ด
 
-        function getAirlineDetails(callsign) {
-            callsign = callsign.toUpperCase();
-            if (callsign.startsWith("THA")) return "Thai Airways (การบินไทย - Widebody/Narrowbody)";
-            if (callsign.startsWith("BKP")) return "Bangkok Airways (บางกอกแอร์เวย์ส - Boutique Airline)";
-            if (callsign.startsWith("AIQ")) return "Thai AirAsia (ไทยแอร์เอเชีย - Airbus A320)";
-            if (callsign.startsWith("TVJ")) return "Thai Vietjet Air (ไทยเวียตเจ็ท - Airbus A320/A321)";
-            if (callsign.startsWith("NOK")) return "Nok Air (นกแอร์ - Boeing 737 / Dash 8)";
-            if (callsign.startsWith("SLK") || callsign.startsWith("THAI LION")) return "Thai Lion Air (ไทยไลอ้อนแอร์ - Boeing 737)";
-            if (callsign.startsWith("SCO")) return "Scoot (สกู๊ต - Boeing 787 Dreamliner)";
-            if (callsign.startsWith("SIA")) return "Singapore Airlines (สิงคโปร์แอร์ไลน์ - Long Haul)";
-            return "Commercial Flight (เที่ยวบินพาณิชย์ทั่วไป)";
+        function getAirlineName(callsign) {
+            if (!callsign || callsign === "N/A") return "Unknown Flight (ไม่ทราบข้อมูล)";
+            let cs = callsign.toUpperCase();
+            if (cs.startsWith("THA")) return "Thai Airways";
+            if (cs.startsWith("BKP")) return "Bangkok Airways";
+            if (cs.startsWith("AIQ")) return "Thai AirAsia";
+            if (cs.startsWith("TVJ")) return "Thai Vietjet Air";
+            if (cs.startsWith("NOK")) return "Nok Air";
+            if (cs.startsWith("SLK") || cs.startsWith("THAI LION")) return "Thai Lion Air";
+            if (cs.startsWith("SCO")) return "Scoot";
+            if (cs.startsWith("SIA")) return "Singapore Airlines";
+            return "Commercial Flight";
         }
 
-        async function loadFlightData() {
+        async function fetchAllData() {
             try {
-                // ดึงข้อมูลจากไฟล์ JSON ที่ GitHub Actions อัปเดตให้
-                const response = await fetch(`flights.json?_=${Date.now()}`);
-                if (response.ok) {
-                    const planes = await response.json();
-                    renderFlightRadar(planes);
+                // รันโหลดทั้งสองไฟล์พร้อมกัน
+                const [weatherRes, flightsRes] = await Promise.all([
+                    fetch(`weather.json?_=${Date.now()}`).catch(() => null),
+                    fetch(`flights.json?_=${Date.now()}`).catch(() => null)
+                ]);
+
+                if (weatherRes && weatherRes.ok) {
+                    const weatherData = await weatherRes.json();
+                    renderWeather(weatherData);
                 }
+
+                if (flightsRes && flightsRes.ok) {
+                    const flightsData = await flightsRes.json();
+                    renderRadarVisual(flightsData);
+                    renderFlightCards(flightsData);
+                }
+
+                document.getElementById('sync-status').innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse shadow-[0_0_8px_#34d399]"></span> ONLINE`;
             } catch (error) {
-                document.getElementById('radar-status').innerHTML = "<span class='text-rose-400'>ไม่สามารถโหลดข้อมูลได้</span>";
+                console.error("Fetch Error:", error);
+                document.getElementById('sync-status').innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> OFFLINE`;
             }
         }
 
-        function renderFlightRadar(planes) {
-            const container = document.getElementById('flight-radar-container');
-            document.getElementById('target-count').innerText = `TARGETS: ${planes.length}`;
+        function renderWeather(data) {
+            document.getElementById('w-temp').innerText = (data.temp || 0).toFixed(1);
+            document.getElementById('w-feels').innerText = (data.feels_like || data.temp || 0).toFixed(1);
+            document.getElementById('w-desc').innerText = data.desc || "UNKNOWN";
+            document.getElementById('w-hum').innerText = `${data.hum || 0} %`;
+            
+            // ลม (m/s เป็น km/h)
+            let windKm = (data.wind || data.wind_speed || 0) * 3.6;
+            document.getElementById('w-wind').innerText = `${windKm.toFixed(1)} km/h`;
+            
+            document.getElementById('w-pressure').innerText = `${data.pressure || '--'} hPa`;
+            document.getElementById('w-clouds').innerText = `${data.clouds || '--'} %`;
+            
+            let visKm = (data.visibility || 0) / 1000;
+            document.getElementById('w-vis').innerText = visKm > 0 ? `${visKm.toFixed(1)} km` : '-- km';
+            
+            // Smart Advisory (ลอจิกคล้ายกับในบอร์ด ESP32)
+            let adviceBox = document.getElementById('w-advice');
+            let id = data.id || 800;
+            if (id >= 200 && id < 300) {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-rose-900/30 border border-rose-800 text-rose-400 text-center text-sm font-medium";
+                adviceBox.innerText = "⚠️ อันตราย: มีพายุฝนฟ้าคะนอง งดกิจกรรมกลางแจ้ง";
+            } else if (id >= 300 && id < 600) {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-sky-900/30 border border-sky-800 text-sky-400 text-center text-sm font-medium";
+                adviceBox.innerText = "🌧️ มีฝนตก: เตรียมร่มหรือเสื้อกันฝน";
+            } else if (data.temp > 35) {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-orange-900/30 border border-orange-800 text-orange-400 text-center text-sm font-medium";
+                adviceBox.innerText = "🔥 อากาศร้อนจัด: ระวังฮีทสโตรก ดื่มน้ำมากๆ";
+            } else {
+                adviceBox.className = "mt-4 p-3 rounded-lg bg-emerald-900/30 border border-emerald-800 text-emerald-400 text-center text-sm font-medium";
+                adviceBox.innerText = "✅ สภาพอากาศปกติ เหมาะสมกับการปฏิบัติงาน";
+            }
+        }
+
+        function renderRadarVisual(planes) {
+            const blipsContainer = document.getElementById('radar-blips');
+            blipsContainer.innerHTML = ''; // Clear old blips
+
+            planes.forEach(plane => {
+                // คำนวณ % บนจอเรดาร์ (เหมือนโค้ดใน ESP32)
+                let xPercent = ((plane.lon - (CENTER_LON - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100;
+                // Y สลับแกนเพราะหน้าจอเว็บแกน Y ทิ่มลง
+                let yPercent = 100 - (((plane.lat - (CENTER_LAT - RADAR_RANGE)) / (RADAR_RANGE * 2)) * 100);
+
+                // กรองให้อยู่ในกรอบจอเรดาร์เท่านั้น
+                if(xPercent >= 0 && xPercent <= 100 && yPercent >= 0 && yPercent <= 100) {
+                    let blipHtml = `
+                        <div class="blip" style="left: ${xPercent}%; top: ${yPercent}%;"></div>
+                        <div class="blip-label" style="left: ${xPercent}%; top: ${yPercent}%;">${plane.callsign.trim()}</div>
+                    `;
+                    blipsContainer.insertAdjacentHTML('beforeend', blipHtml);
+                }
+            });
+        }
+
+        function renderFlightCards(planes) {
+            const container = document.getElementById('flights-container');
+            document.getElementById('target-count').innerText = planes.length;
             
             if(planes.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-12">ท้องฟ้าโปร่งใส ไม่พบอากาศยานในระยะเรดาร์ขณะนี้</div>`;
+                container.innerHTML = `<div class="col-span-full text-center text-slate-500 py-8">น่านฟ้าว่างเปล่า ไม่พบอากาศยานในระยะ ${RADAR_RANGE} องศา</div>`;
                 return;
             }
 
             let html = "";
             planes.forEach((plane, i) => {
-                let themeColor = (i < 5) ? planeHexColors[i] : "#ffffff";
-                let airlineFull = getAirlineDetails(plane.callsign);
+                let airline = getAirlineName(plane.callsign);
+                let speedKm = Math.round((plane.speed || 0) * 3.6);
+                let altM = Math.round(plane.alt || 0);
                 
                 html += `
-                <div class='plane-card' style='border-left: 4px solid ${themeColor};'>
-                    <div class='plane-header'>
-                        <span class='callsign' style='color:${themeColor};'>${plane.callsign}</span>
-                        <span class='badge' style='background-color:${themeColor}; color:${themeColor};'></span>
+                <div class='glass-card p-4 border-l-4 border-l-sky-400'>
+                    <div class='flex justify-between items-start mb-3'>
+                        <div>
+                            <div class='callsign flex items-center gap-1'>
+                                <span class="material-icons-round text-base">flight</span>
+                                ${plane.callsign}
+                            </div>
+                            <div class='text-xs text-sky-200 opacity-80 mt-1'>${airline}</div>
+                        </div>
                     </div>
-                    <div class='airline-info'>${airlineFull}</div>
-                    <div class='radar-grid'>
-                        <div>ALTITUDE: <br><span class='val'>${Math.round(plane.alt)} เมตร</span></div>
-                        <div>SPEED: <br><span class='val'>${Math.round(plane.speed * 3.6)} กม./ชม.</span></div>
-                        <div>LATITUDE: <br><span class='val'>${plane.lat.toFixed(4)}</span></div>
-                        <div>LONGITUDE: <br><span class='val'>${plane.lon.toFixed(4)}</span></div>
+                    
+                    <div class='grid grid-cols-2 gap-y-3 gap-x-2 mt-4 bg-black/20 p-3 rounded-lg border border-slate-700/50'>
+                        <div><div class='data-label'>Altitude</div><div class='data-value text-amber-300'>${altM.toLocaleString()} m</div></div>
+                        <div><div class='data-label'>Speed</div><div class='data-value text-emerald-300'>${speedKm} km/h</div></div>
+                        <div><div class='data-label'>Latitude</div><div class='data-value text-xs'>${parseFloat(plane.lat).toFixed(4)}</div></div>
+                        <div><div class='data-label'>Longitude</div><div class='data-value text-xs'>${parseFloat(plane.lon).toFixed(4)}</div></div>
                     </div>
-                    <a class='map-btn' href='https://maps.google.com/?q=${plane.lat},${plane.lon}' target='_blank'>📍 เปิดพิกัดสดบน Google Maps</a>
+                    
+                    <a href='https://maps.google.com/?q=${plane.lat},${plane.lon}' target='_blank' 
+                       class='mt-4 flex items-center justify-center gap-2 w-full py-2 bg-sky-900/30 hover:bg-sky-800/50 text-sky-300 text-sm font-medium rounded-lg border border-sky-800/50 transition-colors'>
+                        <span class="material-icons-round text-[18px]">place</span> ดูพิกัดบน Google Maps
+                    </a>
                 </div>`;
             });
             container.innerHTML = html;
         }
 
-        loadFlightData();
-        setInterval(loadFlightData, 30000); // รีเฟรชข้อมูลหน้าเว็บทุก 30 วิ
-        setInterval(() => { document.getElementById('web-time').innerText = new Date().toLocaleTimeString('th-TH'); }, 1000);
+        // Initialize & Timers
+        fetchAllData();
+        setInterval(fetchAllData, 30000); // อัปเดตข้อมูลทุก 30 วินาที
+        setInterval(() => { 
+            document.getElementById('web-time').innerText = new Date().toLocaleTimeString('en-GB'); 
+        }, 1000);
     </script>
 </body>
 </html>
